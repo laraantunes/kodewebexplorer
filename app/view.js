@@ -5,15 +5,15 @@ let lastSelectedIndex = -1;
 async function loadCurrentFolder() {
     const container = document.getElementById('content-container');
     if (!container) return;
-    
+
     container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--text-muted); font-size: 15px;">⏳ Lendo arquivos no servidor...</div>';
-    
+
     const res = await apiGet('files', { action: 'list_files', path: AppState.currentPath });
     if (!res.success || !res.files) {
         container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--accent-danger);">⚠️ ${res.error || 'Falha ao ler diretório.'}</div>`;
         return;
     }
-    
+
     AppState.currentFiles = res.files;
     renderCurrentFolder();
 }
@@ -30,7 +30,7 @@ function renderCurrentFolder(filesToRender = null) {
     const files = filesToRender || AppState.currentFiles;
     const container = document.getElementById('content-container');
     if (!container) return;
-    
+
     if (files.length === 0) {
         container.className = 'grid-view-container';
         container.innerHTML = `
@@ -51,7 +51,7 @@ function renderCurrentFolder(filesToRender = null) {
             const isSel = AppState.selectedItems.includes(item.path);
             const icon = getFileIcon(item);
             const thumbUrl = (isImage(item.ext) && !item.is_dir && item.size < 5000000) ? `api/serve.php?path=${encodeURIComponent(item.path)}` : '';
-            
+
             html += `
                 <div class="grid-item ${isSel ? 'selected' : ''}" data-path="${item.path}" data-index="${idx}" onclick="handleItemClick(event, '${item.path}', ${idx}, ${item.is_dir})" oncontextmenu="showContextMenu(event, '${item.path}', ${idx})">
                     <input type="checkbox" class="grid-item-checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectCheckbox('${item.path}', ${idx});">
@@ -98,25 +98,25 @@ function renderCurrentFolder(filesToRender = null) {
         html += `</tbody></table>`;
         container.innerHTML = html;
     }
-    
+
     updateSelectionUI();
 }
 
 function getFileIcon(item) {
     if (item.is_dir) return '📁';
     const ext = strToExt(item.ext);
-    if (['png','jpg','jpeg','gif','svg','webp','ico','bmp'].includes(ext)) return '🖼️';
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'].includes(ext)) return '🖼️';
     if (['pdf'].includes(ext)) return '📕';
-    if (['doc','docx','rtf','odt'].includes(ext)) return '📘';
-    if (['xls','xlsx','csv','ods'].includes(ext)) return '📊';
-    if (['ppt','pptx'].includes(ext)) return '📙';
-    if (['zip','rar','tar','gz','7z'].includes(ext)) return '🗜️';
-    if (['mp4','mov','webm','avi'].includes(ext)) return '🎞️';
-    if (['mp3','wav','ogg','flac'].includes(ext)) return '🎵';
-    if (['php','js','html','css','sql','py','json','xml','md','txt','env'].includes(ext)) return '📜';
+    if (['doc', 'docx', 'rtf', 'odt'].includes(ext)) return '📘';
+    if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return '📊';
+    if (['ppt', 'pptx'].includes(ext)) return '📙';
+    if (['zip', 'rar', 'tar', 'gz', '7z'].includes(ext)) return '🗜️';
+    if (['mp4', 'mov', 'webm', 'avi'].includes(ext)) return '🎞️';
+    if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return '🎵';
+    if (['php', 'js', 'html', 'css', 'sql', 'py', 'json', 'xml', 'md', 'txt', 'env'].includes(ext)) return '📜';
     return '📄';
 }
-function isImage(ext) { return ['png','jpg','jpeg','gif','svg','webp','bmp'].includes(strToExt(ext)); }
+function isImage(ext) { return ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'].includes(strToExt(ext)); }
 function strToExt(ext) { return (ext || '').toString().toLowerCase(); }
 
 // --- MULTISSELEÇÃO DE ARQUIVOS (CTRL, SHIFT & CHECKBOXES) ---
@@ -129,7 +129,7 @@ function handleItemClick(event, path, index, isDir) {
         selectRange(lastSelectedIndex, index);
         return;
     }
-    
+
     // Clique normal
     if (AppState.selectedItems.length <= 1) {
         if (isDir && !AppState.selectedItems.includes(path)) {
@@ -170,7 +170,7 @@ function selectRange(startIdx, endIdx) {
     const min = Math.min(startIdx, endIdx);
     const max = Math.max(startIdx, endIdx);
     const list = AppState.isSearching ? (AppState.searchResults || AppState.currentFiles) : AppState.currentFiles;
-    
+
     for (let i = min; i <= max; i++) {
         const item = list[i];
         if (item && !AppState.selectedItems.includes(item.path)) {
@@ -198,13 +198,13 @@ function updateSelectionUI() {
     const defToolbar = document.getElementById('default-toolbar');
     const countSpan = document.getElementById('count-sel');
     const badgeMobile = document.getElementById('mobile-badge-count');
-    
+
     if (countSpan) countSpan.innerText = count;
     if (badgeMobile) {
         badgeMobile.style.display = count > 0 ? 'inline' : 'none';
         badgeMobile.innerText = count;
     }
-    
+
     if (selToolbar && defToolbar) {
         if (count > 0) {
             selToolbar.style.display = 'flex';
@@ -214,15 +214,15 @@ function updateSelectionUI() {
             defToolbar.style.display = 'flex';
         }
     }
-    
+
     const list = AppState.isSearching ? (AppState.searchResults || AppState.currentFiles) : AppState.currentFiles;
     const allSelected = count > 0 && count === list.length;
-    
+
     const headerCheck = document.getElementById('header-select-all');
     if (headerCheck) {
         headerCheck.checked = allSelected;
     }
-    
+
     const btnSelectAll = document.getElementById('btn-select-all');
     if (btnSelectAll) {
         if (allSelected) {
@@ -233,7 +233,7 @@ function updateSelectionUI() {
             btnSelectAll.title = "Selecionar todos os itens";
         }
     }
-    
+
     if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
 }
 
@@ -253,17 +253,17 @@ async function performSearch(val) {
     }
     AppState.isSearching = true;
     const scope = document.getElementById('search-scope')?.value || 'current';
-    
+
     const container = document.getElementById('content-container');
     container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:30px;">🔍 Buscando por "' + htmlEscape(val) + '"...</div>';
-    
+
     const res = await apiGet('search', { query: val, scope: scope, current_path: AppState.currentPath });
     if (res.success && res.results) {
         AppState.searchResults = res.results;
         renderCurrentFolder(res.results);
     }
 }
-function htmlEscape(str) { return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function htmlEscape(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
 // --- MENU DE CONTEXTO ---
 function showContextMenu(event, path, idx) {
@@ -274,21 +274,21 @@ function showContextMenu(event, path, idx) {
         renderCurrentFolder();
         if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
     }
-    
+
     const menu = document.getElementById('file-context-menu');
     if (!menu) return;
-    
+
     let x = event.clientX;
     let y = event.clientY;
-    
+
     // Ajustar caso saia da tela
     if (x + 200 > window.innerWidth) x = window.innerWidth - 200;
     if (y + 250 > window.innerHeight) y = window.innerHeight - 260;
-    
+
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
     menu.classList.add('active');
-    
+
     // Ocultar ao clicar fora
     document.addEventListener('click', () => menu.classList.remove('active'), { once: true });
 }
@@ -299,11 +299,11 @@ async function handleAction(actionType) {
         showToast("Selecione ao menos um arquivo ou pasta para esta ação.", "warning");
         return;
     }
-    
+
     const count = AppState.selectedItems.length;
     const firstPath = AppState.selectedItems[0];
     const firstItem = (AppState.isSearching ? AppState.searchResults : AppState.currentFiles).find(f => f.path === firstPath);
-    
+
     switch (actionType) {
         case 'open':
             if (!firstItem) return;
@@ -313,13 +313,13 @@ async function handleAction(actionType) {
                 openFileViewer(firstItem.path, firstItem.name);
             }
             break;
-            
+
         case 'download':
             showToast(`Iniciando download de ${count} item(ns)...`, "info");
             const dlUrl = `api/download.php?items=${encodeURIComponent(JSON.stringify(AppState.selectedItems))}`;
             window.location.href = dlUrl;
             break;
-            
+
         case 'delete':
             if (!confirm(`⚠️ Excluir permanentemente ${count} item(ns) da hospedagem?\nEsta ação é irreversível!`)) return;
             const resDel = await apiPost('files', { action: 'delete', items: AppState.selectedItems });
@@ -330,7 +330,7 @@ async function handleAction(actionType) {
                 if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
             }
             break;
-            
+
         case 'rename':
             if (count > 1) {
                 showToast("Renomeie apenas 1 item por vez.", "warning");
@@ -347,12 +347,12 @@ async function handleAction(actionType) {
                 }
             }
             break;
-            
+
         case 'copy':
         case 'move':
             openDestinationModal(actionType);
             break;
-            
+
         case 'details':
             if (window.innerWidth <= 768) {
                 toggleMobileDrawer('right');
@@ -400,18 +400,18 @@ async function performFileUpload(fileList, relativePaths = null) {
     showToast(`Iniciando upload de ${fileList.length} arquivo(s) para o servidor...`, "info", 5000);
     const formData = new FormData();
     formData.append('target_path', AppState.currentPath);
-    
+
     if (relativePaths) {
         formData.append('relative_paths', JSON.stringify(relativePaths));
     }
-    
+
     for (let i = 0; i < fileList.length; i++) {
         formData.append('files[]', fileList[i]);
     }
-    
+
     const res = await apiPost('upload', formData);
     if (res.success) {
-        showToast("✅ Upload concluído com sucesso!", "success");
+        showToast("Upload concluído com sucesso!", "success");
         loadCurrentFolder();
     } else {
         showToast(`❌ Erro no upload: ${res.error || 'Falha desconhecida'}`, "error", 6000);
@@ -423,17 +423,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewport = document.getElementById('center-viewport');
     const overlay = document.getElementById('drag-drop-overlay');
     if (!viewport || !overlay) return;
-    
+
     let dragCounter = 0;
-    
+
     viewport.addEventListener('dragenter', (e) => {
         e.preventDefault();
         dragCounter++;
         overlay.classList.add('active');
     });
-    
+
     viewport.addEventListener('dragover', (e) => e.preventDefault());
-    
+
     viewport.addEventListener('dragleave', (e) => {
         e.preventDefault();
         dragCounter--;
@@ -442,12 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay.classList.remove('active');
         }
     });
-    
+
     viewport.addEventListener('drop', async (e) => {
         e.preventDefault();
         dragCounter = 0;
         overlay.classList.remove('active');
-        
+
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
             await performFileUpload(files);

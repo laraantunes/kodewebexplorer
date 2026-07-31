@@ -7,15 +7,15 @@ async function openFileViewer(relPath, fallbackName = '') {
     currentViewerFilePath = relPath;
     const filename = fallbackName || basename(relPath);
     const ext = strToExt(filename.split('.').pop());
-    
+
     const overlay = document.getElementById('modal-viewer');
     const titleSpan = document.getElementById('viewer-filename');
     const saveBtn = document.getElementById('viewer-save-btn');
     if (!overlay || !titleSpan) return;
-    
+
     titleSpan.innerText = filename;
     overlay.classList.add('active');
-    
+
     // Ocultar todas as seções e redefinir botão de salvar
     document.getElementById('ace-editor-wrapper').style.display = 'none';
     document.getElementById('spreadsheet-wrapper').style.display = 'none';
@@ -24,9 +24,9 @@ async function openFileViewer(relPath, fallbackName = '') {
     document.getElementById('image-wrapper').style.display = 'none';
     document.getElementById('pdf-viewer-frame').style.display = 'none';
     document.getElementById('unsupported-wrapper').style.display = 'none';
-    
+
     if (saveBtn) saveBtn.style.display = 'none';
-    
+
     showToast(`Abrindo visualizador para ${filename}...`, "info", 2000);
 
     // CATEGORIA 1: IMAGENS
@@ -47,16 +47,16 @@ async function openFileViewer(relPath, fallbackName = '') {
         const sheetWrap = document.getElementById('spreadsheet-wrapper');
         const sheetTabs = document.getElementById('spreadsheet-tabs');
         const sheetContent = document.getElementById('spreadsheet-content');
-        
+
         sheetWrap.style.display = 'block';
         sheetTabs.style.display = 'flex';
         sheetContent.innerHTML = '<div style="text-align:center; padding:50px; color:#fff;">📊 Carregando tabela Excel interativa via SheetJS...</div>';
-        
+
         try {
             const res = await fetch(`api/serve.php?path=${encodeURIComponent(relPath)}`);
             const arrayBuffer = await res.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            
+
             sheetTabs.innerHTML = '';
             workbook.SheetNames.forEach((name, idx) => {
                 const btn = document.createElement('button');
@@ -69,7 +69,7 @@ async function openFileViewer(relPath, fallbackName = '') {
                 };
                 sheetTabs.appendChild(btn);
             });
-            
+
             if (workbook.SheetNames.length > 0) {
                 renderExcelSheet(workbook.Sheets[workbook.SheetNames[0]], sheetContent);
             }
@@ -85,7 +85,7 @@ async function openFileViewer(relPath, fallbackName = '') {
         const docContent = document.getElementById('document-content');
         docWrap.style.display = 'block';
         docContent.innerHTML = '<div style="text-align:center; padding:50px; color:#fff;">📘 Convertendo Word para Reading Mode com Mammoth.js...</div>';
-        
+
         try {
             const res = await fetch(`api/serve.php?path=${encodeURIComponent(relPath)}`);
             const arrayBuffer = await res.arrayBuffer();
@@ -115,13 +115,13 @@ async function openFileViewer(relPath, fallbackName = '') {
         const aceWrap = document.getElementById('ace-editor-wrapper');
         aceWrap.style.display = 'flex';
         if (saveBtn) saveBtn.style.display = 'inline-flex';
-        
+
         const res = await apiGet('files', { action: 'read_file', path: relPath });
         if (!res.success) {
             showToast("Erro ao carregar conteúdo do arquivo de texto.", "error");
             return;
         }
-        
+
         if (!aceEditorInstance && typeof ace !== 'undefined') {
             aceEditorInstance = ace.edit("ace-editor-container");
             aceEditorInstance.setTheme("ace/theme/dracula");
@@ -134,11 +134,11 @@ async function openFileViewer(relPath, fallbackName = '') {
             // Atalho interno do Ace Editor para Ctrl+S
             aceEditorInstance.commands.addCommand({
                 name: 'saveFile',
-                bindKey: {win: 'Ctrl-S', mac: 'Cmd-S'},
-                exec: function() { saveAceEditorContent(); }
+                bindKey: { win: 'Ctrl-S', mac: 'Cmd-S' },
+                exec: function () { saveAceEditorContent(); }
             });
         }
-        
+
         const mode = getAceMode(ext);
         document.getElementById('ace-mode-label').innerText = mode.toUpperCase();
         aceEditorInstance.session.setMode(`ace/mode/${mode}`);
@@ -175,7 +175,7 @@ async function saveAceEditorContent() {
     showToast("💾 Salvando alterações no arquivo...", "info");
     const res = await apiPost('files', { action: 'save_file', path: currentViewerFilePath, content: newContent });
     if (res.success) {
-        showToast("✅ Arquivo salvo e atualizado com sucesso na hospedagem!", "success");
+        showToast("Arquivo salvo e atualizado com sucesso na hospedagem!", "success");
         loadCurrentFolder();
     }
 }

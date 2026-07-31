@@ -6,7 +6,7 @@ let targetActionForDestination = '';
 document.addEventListener('DOMContentLoaded', () => {
     initPanelResizers();
     initKeyboardShortcuts();
-    
+
     // Restore View Mode
     const savedViewMode = localStorage.getItem('kw_explorer_view_mode');
     if (savedViewMode) {
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-view-grid').classList.toggle('active', savedViewMode === 'grid');
         document.getElementById('btn-view-list').classList.toggle('active', savedViewMode === 'list');
     }
-    
+
     // Restore Details Panel state
     if (window.innerWidth > 768) {
         const savedDetailsState = localStorage.getItem('kw_explorer_details_open');
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedPath !== null) {
         AppState.currentPath = savedPath;
     }
-    
+
     // Inicia a renderização principal
     renderBreadcrumb();
     loadTreeRoot();
@@ -50,7 +50,7 @@ function initPanelResizers() {
     const resizerRight = document.getElementById('resizer-right');
     const panelLeft = document.getElementById('panel-left');
     const panelRight = document.getElementById('panel-right');
-    
+
     if (resizerLeft && panelLeft) {
         let isResizingLeft = false;
         resizerLeft.addEventListener('mousedown', (e) => {
@@ -128,7 +128,7 @@ function initKeyboardShortcuts() {
                 saveAceEditorContent();
             }
         }
-        
+
         // Ctrl+A para selecionar tudo no Explorer
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
             e.preventDefault();
@@ -137,7 +137,7 @@ function initKeyboardShortcuts() {
                 toggleSelectAll();
             }
         }
-        
+
         // Tecla Delete ou Backspace para excluir item selecionado
         if (e.key === 'Delete' || e.key === 'Backspace') {
             const anyModal = document.querySelector('.modal-overlay.active');
@@ -153,13 +153,13 @@ function initKeyboardShortcuts() {
 function openOptionsModal(defaultTab = 'workspace') {
     const modal = document.getElementById('modal-options');
     if (!modal) return;
-    
+
     // Carrega dados vigentes
     const pathInput = document.getElementById('opt-workspace-path');
     const localCheck = document.getElementById('opt-is-local');
     if (pathInput) pathInput.value = INITIAL_WORKSPACE || '';
     if (localCheck) localCheck.checked = (IS_LOCAL === 1 || IS_LOCAL === true || IS_LOCAL === '1');
-    
+
     switchOptionsTab(defaultTab);
     modal.classList.add('active');
 }
@@ -177,10 +177,10 @@ async function saveWorkspaceSettings(event) {
     event.preventDefault();
     const pathVal = document.getElementById('opt-workspace-path').value.trim();
     const isLocalVal = document.getElementById('opt-is-local').checked ? '1' : '0';
-    
+
     const res = await apiPost('options', { action: 'save_settings', workspace_path: pathVal, is_local: isLocalVal });
     if (res.success) {
-        showToast("✅ Configurações de Workspace salvas! Recarregando aplicação...", "success");
+        showToast("Configurações de Workspace salvas! Recarregando aplicação...", "success");
         setTimeout(() => window.location.reload(), 1200);
     }
 }
@@ -189,9 +189,9 @@ async function updateAdminCredentials(event) {
     event.preventDefault();
     const userVal = document.getElementById('sec-username').value.trim();
     const passVal = document.getElementById('sec-password').value;
-    
+
     if (!userVal || !passVal) return;
-    
+
     const res = await apiPost('options', { action: 'update_credentials', username: userVal, new_password: passVal });
     if (res.success) {
         showToast("🔒 Senha re-criptografada com sucesso no arquivo `auth.enc`!", "success");
@@ -207,13 +207,13 @@ async function checkGithubUpdate() {
         btn.innerHTML = '⏳ Conectando ao GitHub API...';
     }
     showToast("Verificando se há novas versões em laraantunes/kodewebexplorer...", "info", 5000);
-    
+
     const res = await apiGet('options', { action: 'update_app' });
     if (btn) {
         btn.disabled = false;
         btn.innerHTML = '🔍 Buscar Atualizações no GitHub';
     }
-    
+
     if (res.success) {
         showToast(`🚀 ${res.message}`, "success", 7000);
         setTimeout(() => window.location.reload(), 2500);
@@ -229,9 +229,9 @@ function openNewItemModal(type) {
     const label = document.getElementById('new-item-label');
     const input = document.getElementById('new-item-input');
     const hiddenType = document.getElementById('new-item-type');
-    
+
     if (!modal) return;
-    
+
     if (type === 'folder') {
         title.innerText = '📁 Criar Nova Pasta';
         label.innerText = 'Nome do Diretório (será criado na pasta atual)';
@@ -243,7 +243,7 @@ function openNewItemModal(type) {
         input.placeholder = 'ex: script.js ou notas.txt';
         hiddenType.value = 'file';
     }
-    
+
     input.value = '';
     modal.classList.add('active');
     setTimeout(() => input.focus(), 100);
@@ -253,12 +253,12 @@ async function submitNewItem(event) {
     event.preventDefault();
     const type = document.getElementById('new-item-type').value;
     const name = document.getElementById('new-item-input').value.trim();
-    
+
     if (!name) return;
-    
+
     const action = type === 'folder' ? 'create_folder' : 'create_file';
     const res = await apiPost('files', { action: action, parent: AppState.currentPath, name: name });
-    
+
     if (res.success) {
         showToast(res.message, "success");
         closeModal('modal-new-item');
@@ -273,13 +273,13 @@ async function openDestinationModal(actionType) {
     const modal = document.getElementById('modal-destination');
     const title = document.getElementById('dest-modal-title');
     const treeDiv = document.getElementById('destination-tree-container');
-    
+
     if (!modal || !treeDiv) return;
-    
+
     title.innerText = actionType === 'move' ? '📦 Mover para pasta...' : '📋 Copiar para pasta...';
     treeDiv.innerHTML = 'Lendo estrutura da hospedagem...';
     modal.classList.add('active');
-    
+
     const res = await apiGet('files', { action: 'list_tree', path: '' });
     if (res.success && res.folders) {
         let html = '<ul class="tree-list root-list">';
@@ -289,7 +289,7 @@ async function openDestinationModal(actionType) {
         });
         html += '</ul>';
         treeDiv.innerHTML = html;
-        
+
         // Atribuir o handler ao botão de confirmar
         const btnConf = document.getElementById('confirm-dest-btn');
         let selectedDestPath = '';
