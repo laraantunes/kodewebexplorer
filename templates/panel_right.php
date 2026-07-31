@@ -15,7 +15,7 @@
         <div class="details-preview" id="detail-preview-box">
             <div class="details-preview-icon" id="detail-big-icon">📁</div>
             <img src="" class="details-preview-img" id="detail-preview-img" style="display: none;">
-            <div class="details-title" id="detail-title">Raiz da Hospedagem</div>
+            <div class="details-title" id="detail-title">Raiz</div>
             <div class="details-subtitle" id="detail-subtitle">Pasta atual</div>
         </div>
 

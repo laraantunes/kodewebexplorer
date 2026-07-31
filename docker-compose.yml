@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  kodeweb_explorer:
+    build: .
+    container_name: kodeweb_explorer_app
+    ports:
+      # Usando a porta 8082 para não conflitar com 8080 (IDE) e 8081 (Lite)
+      - "8082:80"
+    volumes:
+      - ./data:/var/www/html/data
+      # Mapear a raiz D:\ do seu computador para o KodeWeb Explorer acessar como Workspace:
+      - D:\:/workspace
+    restart: unless-stopped

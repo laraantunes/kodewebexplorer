@@ -20,7 +20,7 @@ async function loadTreeRoot() {
     rootNode.innerHTML = `
         <div class="tree-item ${AppState.currentPath === '' ? 'active' : ''}" onclick="navigateTo('')">
             <span class="tree-icon" style="color: #00ff88;">🏠</span>
-            <span>Raiz da Hospedagem</span>
+            <span>Raiz</span>
         </div>
     `;
     rootUl.appendChild(rootNode);

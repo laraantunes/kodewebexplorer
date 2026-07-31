@@ -3,13 +3,12 @@
     <div class="logo-section" onclick="navigateTo('')" title="Voltar à pasta Raiz">
         <img src="logo.svg" alt="Logo" class="logo-icon">
         <span class="app-title">KodeWeb Explorer</span>
-        <span class="badge-version"><?= htmlspecialchars($app_version) ?></span>
     </div>
 
     <!-- Pão de Forma / Breadcrumb Flutuante -->
     <div class="breadcrumb-container" id="breadcrumb-bar" title="Caminho atual no servidor">
         <ul class="breadcrumb-list" id="breadcrumb-list">
-            <li class="breadcrumb-item active">📁 Raiz da Hospedagem</li>
+            <li class="breadcrumb-item active">📁 Raiz</li>
         </ul>
     </div>
 

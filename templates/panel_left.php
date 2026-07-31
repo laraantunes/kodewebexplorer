@@ -1,7 +1,7 @@
 <!-- Painel Esquerdo (Árvore de Exploração do Servidor) -->
 <aside class="panel" id="panel-left">
     <div class="panel-header">
-        <span>Árvore de Hospedagem</span>
+        <span>Pastas</span>
         <div class="panel-actions">
             <button class="icon-btn" onclick="openNewItemModal('folder')" title="Criar Pasta na seleção">+📁</button>
             <button class="icon-btn" onclick="openNewItemModal('file')" title="Criar Arquivo na seleção">+📄</button>

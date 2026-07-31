@@ -93,9 +93,7 @@ body {
     font-weight: 700;
     font-size: 17px;
     letter-spacing: 0.5px;
-    background: linear-gradient(90deg, #ffffff, #00ff88);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #ffffff;
 }
 .badge-version {
     font-size: 10px;
@@ -170,7 +168,6 @@ body {
 .search-input:focus {
     border-color: var(--accent-success);
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-    width: 300px;
 }
 .search-icon {
     position: absolute;

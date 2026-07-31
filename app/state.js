@@ -64,6 +64,7 @@ function showToast(message, type = 'info', duration = 3500) {
 
 function navigateTo(targetPath) {
     AppState.currentPath = targetPath.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    localStorage.setItem('kw_explorer_path', AppState.currentPath);
     AppState.selectedItems = [];
     AppState.isSearching = false;
     
@@ -88,7 +89,7 @@ function renderBreadcrumb() {
     // Raiz do servidor
     const rootLi = document.createElement('li');
     rootLi.className = 'breadcrumb-item ' + (AppState.currentPath === '' ? 'active' : '');
-    rootLi.innerHTML = '📁 Hospedagem Raiz';
+    rootLi.innerHTML = '📁 Raiz';
     rootLi.onclick = () => navigateTo('');
     list.appendChild(rootLi);
     

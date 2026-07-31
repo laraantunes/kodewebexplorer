@@ -7,6 +7,37 @@ document.addEventListener('DOMContentLoaded', () => {
     initPanelResizers();
     initKeyboardShortcuts();
     
+    // Restore View Mode
+    const savedViewMode = localStorage.getItem('kw_explorer_view_mode');
+    if (savedViewMode) {
+        AppState.viewMode = savedViewMode;
+        document.getElementById('btn-view-grid').classList.toggle('active', savedViewMode === 'grid');
+        document.getElementById('btn-view-list').classList.toggle('active', savedViewMode === 'list');
+    }
+    
+    // Restore Details Panel state
+    if (window.innerWidth > 768) {
+        const savedDetailsState = localStorage.getItem('kw_explorer_details_open');
+        const pRight = document.getElementById('panel-right');
+        const rRight = document.getElementById('resizer-right');
+        const btnToggle = document.getElementById('btn-toggle-props');
+        if (savedDetailsState === 'false') {
+            if (pRight) pRight.style.display = 'none';
+            if (rRight) rRight.style.display = 'none';
+            if (btnToggle) btnToggle.classList.remove('active');
+        } else if (savedDetailsState === 'true') {
+            if (pRight) pRight.style.display = 'flex';
+            if (rRight) rRight.style.display = 'block';
+            if (btnToggle) btnToggle.classList.add('active');
+        }
+    }
+
+    // Restore Path
+    const savedPath = localStorage.getItem('kw_explorer_path');
+    if (savedPath !== null) {
+        AppState.currentPath = savedPath;
+    }
+    
     // Inicia a renderização principal
     renderBreadcrumb();
     loadTreeRoot();
@@ -72,6 +103,18 @@ function initPanelResizers() {
 // Atalhos Globais
 function initKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const activeModal = document.querySelector('.modal-overlay.active');
+            if (activeModal) {
+                if (activeModal.id === 'modal-viewer' && typeof closeViewerModal === 'function') {
+                    closeViewerModal();
+                } else {
+                    activeModal.classList.remove('active');
+                }
+                return;
+            }
+        }
+
         // Ignora se estiver dentro de um campo de texto ou input
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
             return;
@@ -240,7 +283,7 @@ async function openDestinationModal(actionType) {
     const res = await apiGet('files', { action: 'list_tree', path: '' });
     if (res.success && res.folders) {
         let html = '<ul class="tree-list root-list">';
-        html += `<li class="tree-node"><div class="tree-item dest-item active" data-dest="" onclick="selectDestItem('', this)">🏠 Raiz da Hospedagem</div></li>`;
+        html += `<li class="tree-node"><div class="tree-item dest-item active" data-dest="" onclick="selectDestItem('', this)">🏠 Raiz</div></li>`;
         res.folders.forEach(f => {
             html += `<li class="tree-node"><div class="tree-item dest-item" data-dest="${f.path}" onclick="selectDestItem('${f.path}', this)">📂 ${f.name}</div></li>`;
         });

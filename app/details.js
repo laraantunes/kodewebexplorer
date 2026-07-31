@@ -24,7 +24,7 @@ function updateDetailsPanel() {
         iconBox.style.display = 'block';
         imgBox.style.display = 'none';
         iconBox.innerText = AppState.currentPath === '' ? '🏠' : '📂';
-        title.innerText = AppState.currentPath === '' ? 'Raiz do Servidor' : basename(AppState.currentPath);
+        title.innerText = AppState.currentPath === '' ? 'Raiz' : basename(AppState.currentPath);
         subtitle.innerText = 'Pasta atual na hospedagem';
         
         typeVal.innerText = 'Diretório / Pasta';
@@ -135,10 +135,12 @@ function togglePropertiesPanel() {
             pRight.style.display = 'flex';
             if (rRight) rRight.style.display = 'block';
             if (btnToggle) btnToggle.classList.add('active');
+            localStorage.setItem('kw_explorer_details_open', 'true');
         } else {
             pRight.style.display = 'none';
             if (rRight) rRight.style.display = 'none';
             if (btnToggle) btnToggle.classList.remove('active');
+            localStorage.setItem('kw_explorer_details_open', 'false');
         }
     }
 }

@@ -20,6 +20,7 @@ async function loadCurrentFolder() {
 
 function setViewMode(mode) {
     AppState.viewMode = mode;
+    localStorage.setItem('kw_explorer_view_mode', mode);
     document.getElementById('btn-view-grid').classList.toggle('active', mode === 'grid');
     document.getElementById('btn-view-list').classList.toggle('active', mode === 'list');
     renderCurrentFolder();

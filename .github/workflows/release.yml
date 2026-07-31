@@ -1,0 +1,31 @@
+name: Build and Release KodeWeb Explorer
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean up dev and unneeded files
+        run: |
+          rm -rf .git
+          rm -rf .github
+          rm -f .gitignore
+
+      - name: Create ZIP archive
+        run: zip -r kodeweb-explorer-release.zip .
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: kodeweb-explorer-release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
