@@ -34,7 +34,7 @@
         <button class="top-btn" onclick="openNewItemModal('file')" title="Criar Novo Arquivo de Texto / Código Aqui">
             <span>📄+</span> <span class="btn-label">Arquivo</span>
         </button>
-        <button class="top-btn" onclick="openOptionsModal()" title="Opções, Workspace e Atualizações do GitHub">
+        <button class="top-btn" onclick="openOptionsModal()" title="Opções">
             <span>⚙️</span> <span class="btn-label">Opções</span>
         </button>
         <button class="top-btn logout-btn" onclick="window.location.href='logout.php'" title="Sair com Segurança">

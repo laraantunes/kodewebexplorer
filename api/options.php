@@ -121,7 +121,7 @@ try {
                 @unlink($tempZip);
                 echo json_encode([
                     'success' => true, 
-                    'message' => 'KodeWeb Explorer foi auto-atualizado com sucesso para a versão ' . ($releaseData['tag_name'] ?? 'mais recente') . ' do GitHub!',
+                    'message' => 'KodeWeb Explorer foi auto-atualizado com sucesso para a versão ' . ($releaseData['tag_name'] ?? 'mais recente') . '!',
                     'new_version' => $releaseData['tag_name'] ?? ''
                 ]);
             } else {

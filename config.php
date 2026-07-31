@@ -1,7 +1,7 @@
 <?php
 // config.php - Configurações vitais do KodeWeb Explorer
 
-$app_version = "v1.0.1";
+$app_version = "v1.0.2-ex";
 
 $local = false;
 $env_file = __DIR__ . '/.env';
