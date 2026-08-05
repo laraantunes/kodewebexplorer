@@ -9,6 +9,18 @@ async function loadCurrentFolder() {
     container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--text-muted); font-size: 15px;">⏳ Lendo arquivos no servidor...</div>';
 
     const res = await apiGet('files', { action: 'list_files', path: AppState.currentPath });
+    
+    if (res.is_file_redirect) {
+        AppState.currentPath = res.parent_path;
+        localStorage.setItem('kw_explorer_path', AppState.currentPath);
+        AppState.selectedItems = [res.file_to_select];
+        
+        if (typeof renderBreadcrumb === 'function') renderBreadcrumb();
+        if (typeof highlightTreeItem === 'function') highlightTreeItem(AppState.currentPath);
+        
+        return loadCurrentFolder();
+    }
+
     if (!res.success || !res.files) {
         container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--accent-danger);">⚠️ ${res.error || 'Falha ao ler diretório.'}</div>`;
         return;
@@ -295,19 +307,38 @@ function showContextMenu(event, path, idx) {
 
 // --- AÇÕES DO TOOLBAR E DO MENU DE CONTEXTO ---
 async function handleAction(actionType) {
-    if (AppState.selectedItems.length === 0 && actionType !== 'open') {
-        showToast("Selecione ao menos um arquivo ou pasta para esta ação.", "warning");
-        return;
-    }
+    let count = AppState.selectedItems.length;
+    let targetPaths = [...AppState.selectedItems];
+    let firstPath = targetPaths[0];
+    let firstItem = null;
 
-    const count = AppState.selectedItems.length;
-    const firstPath = AppState.selectedItems[0];
-    const firstItem = (AppState.isSearching ? AppState.searchResults : AppState.currentFiles).find(f => f.path === firstPath);
+    if (count === 0) {
+        if (actionType !== 'open' && actionType !== 'download' && actionType !== 'share' && actionType !== 'get_link' && actionType !== 'rename' && actionType !== 'copy' && actionType !== 'move' && actionType !== 'delete' && actionType !== 'details') {
+            return;
+        }
+        firstPath = AppState.currentPath;
+        targetPaths = [firstPath];
+        firstItem = {
+            name: firstPath === '' ? 'Raiz' : basename(firstPath),
+            is_dir: true,
+            path: firstPath
+        };
+        count = 1;
+
+        if (firstPath === '' && (actionType === 'delete' || actionType === 'rename' || actionType === 'move')) {
+            showToast("Ação não permitida na pasta raiz.", "error");
+            return;
+        }
+    } else {
+        firstItem = (AppState.isSearching ? AppState.searchResults : AppState.currentFiles).find(f => f.path === firstPath);
+    }
 
     switch (actionType) {
         case 'open':
             if (!firstItem) return;
             if (firstItem.is_dir) {
+                // If the user double clicked current folder in details panel... it should just reload or go to it.
+                // But navigateTo already reloads if same.
                 navigateTo(firstItem.path);
             } else {
                 openFileViewer(firstItem.path, firstItem.name);
@@ -316,13 +347,84 @@ async function handleAction(actionType) {
 
         case 'download':
             showToast(`Iniciando download de ${count} item(ns)...`, "info");
-            const dlUrl = `api/download.php?items=${encodeURIComponent(JSON.stringify(AppState.selectedItems))}`;
+            const dlUrl = `api/download.php?items=${encodeURIComponent(JSON.stringify(targetPaths))}`;
             window.location.href = dlUrl;
             break;
 
+        case 'share':
+            if (count > 1) {
+                showToast("Selecione apenas 1 item para compartilhar nativamente.", "warning");
+                return;
+            }
+            if (navigator.share) {
+                showToast("Preparando arquivo para compartilhamento...", "info");
+                try {
+                    const dlUrlSingle = `api/download.php?items=${encodeURIComponent(JSON.stringify([firstPath]))}`;
+                    const response = await fetch(dlUrlSingle);
+                    if (!response.ok) throw new Error("Erro no download");
+                    const blob = await response.blob();
+                    const file = new File([blob], firstItem.name, { type: blob.type });
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: firstItem.name,
+                            files: [file]
+                        });
+                    } else {
+                        // Fallback sharing link if file sharing isn't supported
+                        const baseUrl = window.location.origin + window.location.pathname.replace('index.php', '');
+                        const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+                        const hash = await getShareHash(firstPath);
+                        if (hash) {
+                            await navigator.share({
+                                title: firstItem.name,
+                                url: cleanBase + "public.php?code=" + hash
+                            });
+                        } else {
+                            showToast("Falha ao gerar link seguro.", "error");
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Falha ao compartilhar o arquivo.", "error");
+                }
+            } else {
+                showToast("Compartilhamento nativo não suportado neste navegador.", "error");
+            }
+            break;
+
+        case 'get_link':
+            if (count > 1) {
+                showToast("Selecione apenas 1 item para gerar o link.", "warning");
+                return;
+            }
+            const baseUrlLink = window.location.origin + window.location.pathname.replace('index.php', '');
+            const cleanBaseLink = baseUrlLink.endsWith('/') ? baseUrlLink : baseUrlLink + '/';
+            const appUrl = cleanBaseLink + "index.php?dir=" + encodeURIComponent(firstPath);
+
+            const wantsPublic = await AppDialog.confirm("Qual tipo de link deseja gerar?\n\n- Público: Para compartilhar externamente.\n- App: Link direto no explorador para acesso rápido.", "Gerar Link", "Público", "App");
+
+            // Se fechou no X, quer cancelar
+            if (wantsPublic === null) return;
+
+            let finalUrl = appUrl;
+            if (wantsPublic) {
+                showToast("Gerando link seguro...", "info");
+                const hash = await getShareHash(firstPath);
+                if (hash) {
+                    finalUrl = cleanBaseLink + "public.php?code=" + hash;
+                } else {
+                    showToast("Erro ao gerar link público seguro.", "error");
+                    return;
+                }
+            }
+
+            await AppDialog.prompt("Link gerado com sucesso. Copie abaixo (Ctrl+C / Cmd+C):", finalUrl, "Copiar Link");
+            break;
+
         case 'delete':
-            if (!confirm(`⚠️ Excluir permanentemente ${count} item(ns) da hospedagem?\nEsta ação é irreversível!`)) return;
-            const resDel = await apiPost('files', { action: 'delete', items: AppState.selectedItems });
+            if (!(await AppDialog.confirm(`⚠️ Excluir permanentemente ${count} item(ns) da hospedagem?\nEsta ação é irreversível!`, "Excluir Item", "Excluir", "Cancelar"))) return;
+            const resDel = await apiPost('files', { action: 'delete', items: targetPaths });
             if (resDel.success) {
                 showToast(resDel.message, "success");
                 AppState.selectedItems = [];
@@ -337,7 +439,7 @@ async function handleAction(actionType) {
                 return;
             }
             const oldName = basename(firstPath);
-            const newName = prompt("Digite o novo nome para o item:", oldName);
+            const newName = await AppDialog.prompt("Digite o novo nome para o item:", oldName, "Renomear Item");
             if (newName && newName.trim() !== '' && newName !== oldName) {
                 const resRen = await apiPost('files', { action: 'rename', path: firstPath, new_name: newName.trim() });
                 if (resRen.success) {
@@ -371,6 +473,22 @@ async function handleAction(actionType) {
 }
 
 function basename(str) { return str.split('/').pop(); }
+
+async function getShareHash(path) {
+    try {
+        const response = await fetch('api/share_link.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path })
+        });
+        const data = await response.json();
+        if (data.success) return data.hash;
+        return null;
+    } catch (e) {
+        console.error("Erro ao gerar hash", e);
+        return null;
+    }
+}
 
 // --- UPLOAD MANUAL E DRAG & DROP OVERLAY ---
 function triggerFileUpload() {

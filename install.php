@@ -253,7 +253,7 @@ if (file_exists(__DIR__ . '/.env')) {
             </div>
             
             <button type="submit" class="btn-primary">
-                <?= $is_installed ? '🔄 Atualizar Credenciais' : '🚀 Instalar e Iniciar Explorer' ?>
+                <?= $is_installed ? 'Atualizar Credenciais' : 'Instalar e Iniciar Explorer' ?>
             </button>
             
             <?php if ($is_installed): ?>

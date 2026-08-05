@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Usuário ou senha incorretos.';
             }
         } else {
-            $error = 'Erro ao ler a credencial criptografada.';
+            $error = 'Erro ao ler as credenciais.';
         }
     }
 }
@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-card">
         <img src="logo.svg" alt="KodeWeb Explorer Logo">
         <h2>KodeWeb Explorer</h2>
-        <p class="subtitle">Gerenciador de Arquivos Cloud e Hospedagem</p>
+        <p class="subtitle">Gerenciador de Arquivos Web</p>
         
         <?php if ($error): ?>
             <div class="error-message">⚠️ <?= htmlspecialchars($error) ?></div>
@@ -196,11 +196,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" class="form-input" id="password" name="password" placeholder="Sua senha" required autocomplete="current-password">
             </div>
             
-            <button type="submit" class="btn-primary">🔐 Entrar no Explorer</button>
+            <button type="submit" class="btn-primary">Entrar</button>
         </form>
         
         <div class="footer-info">
-            Família KodeWeb &copy; 2026 Laralabs
+            KodeWeb Explorer - 2026 <a href="https://laralabs.dev" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">Laralabs</a> / <a href="https://kodeweb.app.br" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">kodeweb.app.br</a>
         </div>
     </div>
 

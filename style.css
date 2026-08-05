@@ -39,7 +39,8 @@ body {
     color: var(--text-primary);
     font-family: var(--font-ui);
     font-size: 14px;
-    height: 100vh;
+    height: 100vh; /* Fallback for browsers that do not support dvh */
+    height: 100dvh;
     overflow: hidden;
     display: flex;
     flex-direction: column;

@@ -9,6 +9,16 @@ try {
             $absPath = get_absolute_path($relativePath);
             
             if (!is_dir($absPath)) {
+                if (is_file($absPath)) {
+                    $parentPath = dirname($absPath);
+                    echo json_encode([
+                        'success' => true,
+                        'is_file_redirect' => true,
+                        'parent_path' => get_relative_path($parentPath),
+                        'file_to_select' => get_relative_path($absPath)
+                    ]);
+                    exit;
+                }
                 throw new Exception("Diretório não encontrado: " . htmlspecialchars($relativePath));
             }
             

@@ -9,6 +9,6 @@ services:
       - "8082:80"
     volumes:
       - ./data:/var/www/html/data
-      # Mapear a raiz D:\ do seu computador para o KodeWeb Explorer acessar como Workspace:
-      - D:\:/workspace
+      # Defina KODEWEB_DOCKER_WORKSPACE_ROOT no seu arquivo .env (ex: KODEWEB_DOCKER_WORKSPACE_ROOT=C:\)
+      - ${KODEWEB_DOCKER_WORKSPACE_ROOT:-./workspace}:/workspace
     restart: unless-stopped

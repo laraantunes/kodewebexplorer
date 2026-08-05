@@ -32,10 +32,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Restore Path
-    const savedPath = localStorage.getItem('kw_explorer_path');
-    if (savedPath !== null) {
-        AppState.currentPath = savedPath;
+    // Configurar Path Inicial (Via URL ou Restore Local)
+    const urlParams = new URLSearchParams(window.location.search);
+    const dirParam = urlParams.get('dir');
+    if (dirParam) {
+        AppState.currentPath = dirParam;
+        
+        // Limpar a URL para não exibir o parâmetro de entrada indefinidamente
+        if (window.history && window.history.replaceState) {
+            const cleanPath = window.location.pathname.replace(/\/index\.php$/i, '/');
+            window.history.replaceState(null, '', cleanPath);
+        }
+    } else {
+        const savedPath = localStorage.getItem('kw_explorer_path');
+        if (savedPath !== null) {
+            AppState.currentPath = savedPath;
+        }
     }
 
     // Inicia a renderização principal
@@ -310,6 +322,73 @@ async function openDestinationModal(actionType) {
         };
     }
 }
+
+// --- SISTEMA DE DIÁLOGOS CUSTOMIZADOS ---
+window.AppDialog = {
+    show: function(options) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('modal-dialog');
+            if (!modal) return resolve(null);
+            
+            document.getElementById('dialog-title').innerText = options.title || 'Aviso';
+            document.getElementById('dialog-message').innerText = options.message || '';
+            
+            const inputContainer = document.getElementById('dialog-prompt-container');
+            const input = document.getElementById('dialog-prompt-input');
+            const btnCancel = document.getElementById('dialog-btn-cancel');
+            const btnConfirm = document.getElementById('dialog-btn-confirm');
+            
+            if (options.type === 'prompt') {
+                inputContainer.style.display = 'block';
+                input.value = options.defaultValue || '';
+                setTimeout(() => input.focus(), 100);
+            } else {
+                inputContainer.style.display = 'none';
+                input.value = '';
+            }
+            
+            if (options.type === 'alert') {
+                btnCancel.style.display = 'none';
+            } else {
+                btnCancel.style.display = 'inline-flex';
+            }
+            
+            btnConfirm.innerText = options.confirmText || 'Confirmar';
+            btnCancel.innerText = options.cancelText || 'Cancelar';
+            
+            const cleanup = () => {
+                btnConfirm.onclick = null;
+                btnCancel.onclick = null;
+                const closeBtn = modal.querySelector('.modal-close');
+                if (closeBtn) closeBtn.onclick = () => closeModal('modal-dialog');
+                modal.classList.remove('active');
+            };
+            
+            btnConfirm.onclick = () => {
+                cleanup();
+                resolve(options.type === 'prompt' ? input.value : true);
+            };
+            
+            btnCancel.onclick = () => {
+                cleanup();
+                resolve(options.type === 'prompt' ? null : false);
+            };
+            
+            const closeBtn = modal.querySelector('.modal-close');
+            if (closeBtn) {
+                closeBtn.onclick = () => {
+                    cleanup();
+                    resolve(null); // Cancel on close
+                };
+            }
+            
+            modal.classList.add('active');
+        });
+    },
+    alert: (message, title = 'Aviso') => window.AppDialog.show({ type: 'alert', message, title, confirmText: 'OK' }),
+    confirm: (message, title = 'Confirmação', confirmText = 'Confirmar', cancelText = 'Cancelar') => window.AppDialog.show({ type: 'confirm', message, title, confirmText, cancelText }),
+    prompt: (message, defaultValue = '', title = 'Entrada de Dados') => window.AppDialog.show({ type: 'prompt', message, defaultValue, title, confirmText: 'OK', cancelText: 'Cancelar' })
+};
 
 function closeModal(modalId) {
     const el = document.getElementById(modalId);

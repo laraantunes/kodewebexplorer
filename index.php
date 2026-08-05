@@ -54,6 +54,8 @@ $resolved_ws = realpath($workspace_path) ?: $workspace_path;
     <div class="context-menu" id="file-context-menu">
         <div class="context-menu-item" onclick="handleAction('open')">👁️ Abrir / Visualizar</div>
         <div class="context-menu-item" onclick="handleAction('download')">📥 Download <span id="ctx-dl-label"></span></div>
+        <div class="context-menu-item" onclick="handleAction('share')">📤 Compartilhar</div>
+        <div class="context-menu-item" onclick="handleAction('get_link')">🔗 Gerar Link</div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" onclick="handleAction('rename')">✏️ Renomear...</div>
         <div class="context-menu-item" onclick="handleAction('copy')">📋 Copiar para...</div>

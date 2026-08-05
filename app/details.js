@@ -33,7 +33,9 @@ function updateDetailsPanel() {
         permsVal.innerText = '0755';
         pathVal.innerText = AppState.currentPath === '' ? '/' : ('/' + AppState.currentPath);
         
-        if (gridActions) gridActions.style.display = 'none';
+        if (gridActions) gridActions.style.display = 'grid';
+        if (btnOpen) btnOpen.innerHTML = '📂 Abrir Pasta';
+        
         return;
     }
 

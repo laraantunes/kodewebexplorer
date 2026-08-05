@@ -27,7 +27,7 @@ O KodeWeb Explorer já está preparado para rodar perfeitamente em container Doc
    docker-compose up -d --build
    ```
 3. Acesse via `http://localhost:8082`.
-4. **Acessando arquivos locais:** O arquivo `docker-compose.yml` mapeia a unidade `D:\` do seu computador para a pasta `/workspace` do container. Você pode abrir essa pasta no Explorer para gerenciar os arquivos locais da sua máquina!
+4. **Acessando arquivos locais:** O arquivo `docker-compose.yml` utiliza a variável `KODEWEB_DOCKER_WORKSPACE_ROOT` definida no arquivo `.env` para saber qual pasta do seu computador ele deve exibir dentro da pasta `/workspace` do container. Edite o arquivo `.env` para apontar para a sua pasta ou unidade (ex: `KODEWEB_DOCKER_WORKSPACE_ROOT="D:\"`).
 
 ## 🔒 Segurança
 
