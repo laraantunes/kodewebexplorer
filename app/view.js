@@ -566,9 +566,50 @@ document.addEventListener('DOMContentLoaded', () => {
         dragCounter = 0;
         overlay.classList.remove('active');
 
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-            await performFileUpload(files);
+        const items = e.dataTransfer.items;
+        if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+            let queue = [];
+            for (let i = 0; i < items.length; i++) {
+                const entry = items[i].webkitGetAsEntry();
+                if (entry) queue.push(entry);
+            }
+            
+            const files = [];
+            const relativePaths = [];
+
+            while (queue.length > 0) {
+                let entry = queue.shift();
+                
+                if (entry.isFile) {
+                    const file = await new Promise((resolve) => entry.file(resolve));
+                    files.push(file);
+                    const path = entry.fullPath.startsWith('/') ? entry.fullPath.substring(1) : entry.fullPath;
+                    relativePaths.push(path);
+                } else if (entry.isDirectory) {
+                    let dirReader = entry.createReader();
+                    let entries = await new Promise((resolve) => {
+                        let allEntries = [];
+                        function readEntries() {
+                            dirReader.readEntries((results) => {
+                                if (!results.length) {
+                                    resolve(allEntries);
+                                } else {
+                                    allEntries = allEntries.concat(Array.from(results));
+                                    readEntries();
+                                }
+                            });
+                        }
+                        readEntries();
+                    });
+                    queue.push(...entries);
+                }
+            }
+            
+            if (files.length > 0) {
+                await performFileUpload(files, relativePaths);
+            }
+        } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            await performFileUpload(e.dataTransfer.files);
         }
     });
 });

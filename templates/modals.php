@@ -45,6 +45,19 @@
                 </div>
             </div>
 
+            <!-- D1: VISUALIZADOR DE ÁUDIO -->
+            <div id="audio-wrapper" style="display: none; flex: 1; align-items: center; justify-content: center; background: #12051f; flex-direction: column; padding: 40px; text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 20px; color: var(--accent);">🎵</div>
+                <h3 id="audio-filename-display" style="color: #fff; margin-bottom: 20px; word-break: break-all;"></h3>
+                <audio id="viewer-audio-el" controls style="width: 100%; max-width: 500px; outline: none;"></audio>
+            </div>
+
+            <!-- D2: VISUALIZADOR DE VÍDEO -->
+            <div id="video-wrapper" style="display: none; width: 100%; height: 100%; background: #000; position: relative; justify-content: center; align-items: center; flex-direction: column;">
+                <video id="viewer-video-el" controls style="width: 100%; height: 100%; max-height: 100%; outline: none;"></video>
+                <button id="viewer-video-fullscreen-btn" class="btn-action" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; border: 1px solid rgba(255,255,255,0.3); z-index: 10;" title="Tela Cheia">⛶ Tela Cheia</button>
+            </div>
+
             <!-- E: VISUALIZADOR DE PDF / IFRAME -->
             <iframe id="pdf-viewer-frame" style="width: 100%; height: 100%; border: none; display: none;" src=""></iframe>
 

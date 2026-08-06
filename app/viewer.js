@@ -22,6 +22,10 @@ async function openFileViewer(relPath, fallbackName = '') {
     document.getElementById('spreadsheet-tabs').style.display = 'none';
     document.getElementById('document-wrapper').style.display = 'none';
     document.getElementById('image-wrapper').style.display = 'none';
+    const audioWrap = document.getElementById('audio-wrapper');
+    if (audioWrap) audioWrap.style.display = 'none';
+    const videoWrap = document.getElementById('video-wrapper');
+    if (videoWrap) videoWrap.style.display = 'none';
     document.getElementById('pdf-viewer-frame').style.display = 'none';
     document.getElementById('unsupported-wrapper').style.display = 'none';
 
@@ -39,6 +43,28 @@ async function openFileViewer(relPath, fallbackName = '') {
         imgEl.onload = () => {
             if (dims) dims.innerText = `Dimensões Reais: ${imgEl.naturalWidth} x ${imgEl.naturalHeight} px`;
         };
+        return;
+    }
+
+    // CATEGORIA 1.1: ÁUDIO
+    if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext)) {
+        const audioWrap = document.getElementById('audio-wrapper');
+        const audioEl = document.getElementById('viewer-audio-el');
+        const audioTitle = document.getElementById('audio-filename-display');
+        audioWrap.style.display = 'flex';
+        audioTitle.innerText = filename;
+        audioEl.src = `api/serve.php?path=${encodeURIComponent(relPath)}`;
+        audioEl.play().catch(e => console.log('Autoplay prevent or error:', e));
+        return;
+    }
+
+    // CATEGORIA 1.2: VÍDEO
+    if (['mp4', 'webm', 'mov', 'mkv'].includes(ext) || (ext === 'ogg' && filename.includes('.ogv'))) {
+        const videoWrap = document.getElementById('video-wrapper');
+        const videoEl = document.getElementById('viewer-video-el');
+        videoWrap.style.display = 'flex';
+        videoEl.src = `api/serve.php?path=${encodeURIComponent(relPath)}`;
+        videoEl.play().catch(e => console.log('Autoplay prevent or error:', e));
         return;
     }
 
@@ -190,5 +216,30 @@ function closeViewerModal() {
     if (overlay) overlay.classList.remove('active');
     const iframe = document.getElementById('pdf-viewer-frame');
     if (iframe) iframe.src = '';
+    
+    // Stop audio/video
+    const audioEl = document.getElementById('viewer-audio-el');
+    if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+    
+    const videoEl = document.getElementById('viewer-video-el');
+    if (videoEl) { videoEl.pause(); videoEl.src = ''; }
+
     currentViewerFilePath = '';
 }
+
+// Add fullscreen event for video
+document.addEventListener('DOMContentLoaded', () => {
+    const fsBtn = document.getElementById('viewer-video-fullscreen-btn');
+    const videoEl = document.getElementById('viewer-video-el');
+    if (fsBtn && videoEl) {
+        fsBtn.addEventListener('click', () => {
+            if (videoEl.requestFullscreen) {
+                videoEl.requestFullscreen();
+            } else if (videoEl.webkitRequestFullscreen) { /* Safari */
+                videoEl.webkitRequestFullscreen();
+            } else if (videoEl.msRequestFullscreen) { /* IE11 */
+                videoEl.msRequestFullscreen();
+            }
+        });
+    }
+});
