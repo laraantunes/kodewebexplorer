@@ -26,8 +26,11 @@
             <div class="meta-item"><span class="meta-label">Modificação:</span> <span class="meta-value" id="detail-date">-</span></div>
             <div class="meta-item"><span class="meta-label">Permissão:</span> <span class="meta-value" id="detail-perms">0755</span></div>
             <div class="meta-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-                <span class="meta-label">Caminho Completo:</span>
-                <span class="meta-value" id="detail-path" style="text-align: left; font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 6px; border-radius: 4px; width: 100%;">/</span>
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <span class="meta-label">Caminho Completo:</span>
+                    <button class="icon-btn" onclick="copyDetailPath()" title="Copiar caminho" style="font-size: 14px; padding: 2px 6px;">📋</button>
+                </div>
+                <span class="meta-value" id="detail-path" style="text-align: left; font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 6px; border-radius: 4px; width: 100%; word-break: break-all;">/</span>
             </div>
         </div>
 
@@ -38,7 +41,7 @@
             </button>
             <button class="btn-detail" onclick="handleAction('download')">📥 Baixar ZIP</button>
             <button class="btn-detail" onclick="handleAction('rename')">✏️ Renomear</button>
-            <button class="btn-detail" onclick="handleAction('share')">📤 Compartilhar</button>
+            <button class="btn-detail" id="detail-btn-share" onclick="handleAction('share')">📤 Compartilhar</button>
             <button class="btn-detail" onclick="handleAction('get_link')">🔗 Gerar Link</button>
             <button class="btn-detail" onclick="handleAction('copy')">📋 Copiar para</button>
             <button class="btn-action" onclick="handleAction('move')" style="padding: 8px 12px; font-size: 12px;">📦 Mover para</button>

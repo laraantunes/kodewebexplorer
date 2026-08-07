@@ -287,6 +287,17 @@ function showContextMenu(event, path, idx) {
         if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
     }
 
+    const isDir = AppState.currentFiles.find(f => f.path === path)?.is_dir;
+    
+    const btnOpen = document.getElementById('ctx-btn-open');
+    if (btnOpen) btnOpen.style.display = 'block';
+    
+    const btnShare = document.getElementById('ctx-btn-share');
+    if (btnShare) btnShare.style.display = isDir ? 'none' : 'block';
+    
+    const btnDelete = document.getElementById('ctx-btn-delete');
+    if (btnDelete) btnDelete.style.display = 'block';
+
     const menu = document.getElementById('file-context-menu');
     if (!menu) return;
 
@@ -419,11 +430,13 @@ async function handleAction(actionType) {
                 }
             }
 
-            await AppDialog.prompt("Link gerado com sucesso. Copie abaixo (Ctrl+C / Cmd+C):", finalUrl, "Copiar Link");
+            if (typeof copyTextToClipboard === 'function') {
+                copyTextToClipboard(finalUrl, "Link gerado e copiado para a área de transferência!");
+            }
             break;
 
         case 'delete':
-            if (!(await AppDialog.confirm(`⚠️ Excluir permanentemente ${count} item(ns) da hospedagem?\nEsta ação é irreversível!`, "Excluir Item", "Excluir", "Cancelar"))) return;
+            if (!(await AppDialog.confirm(`⚠️ Excluir permanentemente ${count} item(ns)?\nEsta ação é irreversível!`, "Excluir Item", "Excluir", "Cancelar"))) return;
             const resDel = await apiPost('files', { action: 'delete', items: targetPaths });
             if (resDel.success) {
                 showToast(resDel.message, "success");
@@ -612,4 +625,48 @@ document.addEventListener('DOMContentLoaded', () => {
             await performFileUpload(e.dataTransfer.files);
         }
     });
+});
+
+// Evento de menu de contexto para a área vazia (pasta atual)
+document.addEventListener('DOMContentLoaded', () => {
+    // Escuta no center-viewport inteiro (incluindo a área abaixo dos arquivos)
+    const viewport = document.getElementById('center-viewport');
+    if (viewport) {
+        viewport.addEventListener('contextmenu', (event) => {
+            // Se o clique foi em um arquivo/pasta, ignora para deixar o showContextMenu agir
+            if (event.target.closest('.grid-item') || event.target.closest('.list-row')) return;
+            
+            event.preventDefault();
+            
+            // Limpa a seleção para garantir que a ação seja sobre a pasta atual
+            AppState.selectedItems = [];
+            renderCurrentFolder();
+            if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
+            
+            const btnOpen = document.getElementById('ctx-btn-open');
+            if (btnOpen) btnOpen.style.display = 'none'; // Não faz sentido reabrir a pasta atual
+            
+            const btnShare = document.getElementById('ctx-btn-share');
+            if (btnShare) btnShare.style.display = 'none'; // Pasta não pode ser compartilhada
+            
+            const btnDelete = document.getElementById('ctx-btn-delete');
+            if (btnDelete) btnDelete.style.display = 'none'; // Evita excluir a pasta atual
+            
+            const menu = document.getElementById('file-context-menu');
+            if (!menu) return;
+            
+            let x = event.clientX;
+            let y = event.clientY;
+            
+            // Ajustar caso saia da tela
+            if (x + 200 > window.innerWidth) x = window.innerWidth - 200;
+            if (y + 250 > window.innerHeight) y = window.innerHeight - 260;
+            
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.add('active');
+            
+            document.addEventListener('click', () => menu.classList.remove('active'), { once: true });
+        });
+    }
 });

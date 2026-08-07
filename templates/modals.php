@@ -21,7 +21,7 @@
             <div id="ace-editor-wrapper" style="width: 100%; height: 100%; display: none; flex: 1; flex-direction: column;">
                 <div class="viewer-top-toolbar">
                     <span style="font-size: 12px; color: var(--text-muted);">Tema: <strong>Dracula</strong> | Sintaxe: <span id="ace-mode-label">Texto</span></span>
-                    <span style="font-size: 11px; color: var(--accent);">Pressione <b>Ctrl+S</b> ou <b>Cmd+S</b> para salvar na hospedagem</span>
+                    <span id="ace-save-hint" style="font-size: 11px; color: var(--accent);">Pressione <b>Ctrl+S</b> ou <b>Cmd+S</b> para salvar na hospedagem</span>
                 </div>
                 <div id="ace-editor-container"></div>
             </div>

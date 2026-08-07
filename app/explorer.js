@@ -55,6 +55,7 @@ function createTreeNode(folder) {
 
 async function handleTreeItemClick(event, relPath, hasChildren) {
     event.stopPropagation();
+    if (typeof AppState !== 'undefined') AppState.focusedPanel = 'tree';
     navigateTo(relPath);
     if (window.innerWidth <= 768) {
         closeMobileDrawers();
@@ -66,6 +67,7 @@ async function handleTreeItemClick(event, relPath, hasChildren) {
 
 async function handleToggleClick(event, relPath) {
     event.stopPropagation();
+    if (typeof AppState !== 'undefined') AppState.focusedPanel = 'tree';
     expandTreePath(relPath, true);
 }
 

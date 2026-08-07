@@ -114,6 +114,26 @@ function initPanelResizers() {
 
 // Atalhos Globais
 function initKeyboardShortcuts() {
+    // Fechar modais ao clicar no overlay
+    document.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('modal-overlay')) {
+            if (e.target.id === 'modal-viewer' && typeof closeViewerModal === 'function') {
+                closeViewerModal();
+            } else {
+                e.target.classList.remove('active');
+            }
+        }
+    });
+
+    // Define qual painel está focado baseado no clique do usuário
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#panel-left')) {
+            AppState.focusedPanel = 'tree';
+        } else if (e.target.closest('#panel-center')) {
+            AppState.focusedPanel = 'list';
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const activeModal = document.querySelector('.modal-overlay.active');
@@ -130,6 +150,131 @@ function initKeyboardShortcuts() {
         // Ignora se estiver dentro de um campo de texto ou input
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
             return;
+        }
+
+        // Navegação por Teclado (Setas e Enter)
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
+            // Não navega se alguma modal estiver aberta
+            if (document.querySelector('.modal-overlay.active')) return;
+
+            // Previne scroll da página e outros comportamentos nativos com as setas
+            if (e.key !== 'Enter') e.preventDefault();
+
+            // Lógica de navegação na ÁRVORE LATERAL (Tree)
+            if (AppState.focusedPanel === 'tree') {
+                const visibleTreeItems = Array.from(document.querySelectorAll('.tree-item')).filter(el => el.offsetParent !== null);
+                if (visibleTreeItems.length === 0) return;
+                
+                let activeIdx = visibleTreeItems.findIndex(el => el.classList.contains('active'));
+                
+                if (e.key === 'Enter') {
+                    if (activeIdx >= 0) {
+                        const path = visibleTreeItems[activeIdx].getAttribute('data-item-path');
+                        if (path !== null && path !== undefined) navigateTo(path);
+                        else navigateTo('');
+                        
+                        // Move o foco para a lista de arquivos (painel central)
+                        AppState.focusedPanel = 'list';
+                        
+                        // Seleciona automaticamente o primeiro item da lista se não houver seleção
+                        setTimeout(() => {
+                            const list = AppState.isSearching ? (AppState.searchResults || AppState.currentFiles) : AppState.currentFiles;
+                            if (list && list.length > 0) {
+                                AppState.selectedItems = [list[0].path];
+                                if (typeof lastSelectedIndex !== 'undefined') lastSelectedIndex = 0;
+                                renderCurrentFolder();
+                                if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
+                            }
+                        }, 100); // Aguarda um instante para o navigateTo carregar os arquivos (se for rápido)
+                    }
+                    return;
+                }
+                
+                let nextIdx = activeIdx;
+                if (e.key === 'ArrowDown') nextIdx = activeIdx + 1;
+                if (e.key === 'ArrowUp') nextIdx = activeIdx - 1;
+                
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    if (activeIdx >= 0) {
+                        const toggleBtn = visibleTreeItems[activeIdx].querySelector('.tree-toggle.has-child');
+                        if (toggleBtn) {
+                            const isExpanded = toggleBtn.classList.contains('expanded');
+                            if (e.key === 'ArrowRight' && !isExpanded) toggleBtn.click();
+                            else if (e.key === 'ArrowLeft' && isExpanded) toggleBtn.click();
+                        }
+                    }
+                    return;
+                }
+                
+                if (activeIdx === -1) nextIdx = 0;
+
+                if (nextIdx >= 0 && nextIdx < visibleTreeItems.length && nextIdx !== activeIdx) {
+                    const path = visibleTreeItems[nextIdx].getAttribute('data-item-path');
+                    if (path !== null && path !== undefined) navigateTo(path);
+                    else navigateTo('');
+                    
+                    setTimeout(() => visibleTreeItems[nextIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50);
+                }
+                return; // Fim da navegação da árvore
+            }
+
+            // Lógica de navegação na LISTA DE ARQUIVOS (List)
+            const list = AppState.isSearching ? (AppState.searchResults || AppState.currentFiles) : AppState.currentFiles;
+            if (!list || list.length === 0) return;
+
+            let currentIndex = -1;
+            if (AppState.selectedItems.length > 0) {
+                const selPath = AppState.selectedItems[0];
+                currentIndex = list.findIndex(f => f.path === selPath);
+            }
+
+            if (e.key === 'Enter') {
+                if (currentIndex >= 0) {
+                    e.preventDefault();
+                    handleAction('open');
+                }
+                return;
+            }
+
+            // Previne scroll da página e outros comportamentos nativos com as setas
+            e.preventDefault();
+
+            let nextIndex = currentIndex;
+            
+            if (currentIndex === -1) {
+                nextIndex = 0; // Se nada selecionado, vai para o primeiro item
+            } else {
+                if (AppState.viewMode === 'list') {
+                    if (e.key === 'ArrowDown') nextIndex = currentIndex + 1;
+                    if (e.key === 'ArrowUp') nextIndex = currentIndex - 1;
+                } else { // grid
+                    const container = document.getElementById('content-container');
+                    let columns = 1;
+                    if (container) {
+                        const gridStyle = window.getComputedStyle(container).gridTemplateColumns;
+                        if (gridStyle) columns = gridStyle.split(' ').length;
+                    }
+                    
+                    if (e.key === 'ArrowRight') nextIndex = currentIndex + 1;
+                    if (e.key === 'ArrowLeft') nextIndex = currentIndex - 1;
+                    if (e.key === 'ArrowDown') nextIndex = currentIndex + columns;
+                    if (e.key === 'ArrowUp') nextIndex = currentIndex - columns;
+                }
+            }
+
+            if (nextIndex >= 0 && nextIndex < list.length && nextIndex !== currentIndex) {
+                e.preventDefault();
+                AppState.selectedItems = [list[nextIndex].path];
+                if (typeof lastSelectedIndex !== 'undefined') lastSelectedIndex = nextIndex;
+                renderCurrentFolder();
+                if (typeof updateDetailsPanel === 'function') updateDetailsPanel();
+                
+                // Scroll suave após render
+                setTimeout(() => {
+                    const selEl = document.querySelector(`[data-path="${list[nextIndex].path.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`);
+                    if (selEl) selEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }, 10);
+            }
         }
 
         // Ctrl+S / Cmd+S para salvar (já capturado no Ace, mas se estiver focado fora)
@@ -150,12 +295,21 @@ function initKeyboardShortcuts() {
             }
         }
 
-        // Tecla Delete ou Backspace para excluir item selecionado
-        if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Tecla Delete para excluir item selecionado
+        if (e.key === 'Delete') {
             const anyModal = document.querySelector('.modal-overlay.active');
             if (!anyModal && AppState.selectedItems.length > 0) {
                 e.preventDefault();
                 handleAction('delete');
+            }
+        }
+
+        // Tecla Backspace para voltar (pasta acima)
+        if (e.key === 'Backspace') {
+            const anyModal = document.querySelector('.modal-overlay.active');
+            if (!anyModal) {
+                e.preventDefault();
+                if (typeof navigateUp === 'function') navigateUp();
             }
         }
     });
@@ -356,7 +510,27 @@ window.AppDialog = {
             btnConfirm.innerText = options.confirmText || 'Confirmar';
             btnCancel.innerText = options.cancelText || 'Cancelar';
             
+            const handleDialogKeydown = (e) => {
+                if (options.type !== 'prompt') {
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        if (document.activeElement === btnConfirm && btnCancel.style.display !== 'none') {
+                            btnCancel.focus();
+                        } else {
+                            btnConfirm.focus();
+                        }
+                    }
+                }
+                // Enter click on prompt is handled here as well if focused on input
+                if (options.type === 'prompt' && e.key === 'Enter' && document.activeElement === input) {
+                    e.preventDefault();
+                    btnConfirm.click();
+                }
+            };
+            document.addEventListener('keydown', handleDialogKeydown);
+            
             const cleanup = () => {
+                document.removeEventListener('keydown', handleDialogKeydown);
                 btnConfirm.onclick = null;
                 btnCancel.onclick = null;
                 const closeBtn = modal.querySelector('.modal-close');

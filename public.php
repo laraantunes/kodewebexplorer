@@ -46,13 +46,75 @@ $targetPath = str_replace('\\', '/', $realTarget ?: $targetPath);
 
 $isDir = is_dir($targetPath);
 
-// Handle direct download of a single file
-if (isset($_GET['download']) && !$isDir) {
+// Handle direct download of a single file or a folder as ZIP
+if (isset($_GET['download'])) {
+    if (!$isDir) {
+        $mime = mime_content_type($targetPath) ?: 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: attachment; filename="' . basename($targetPath) . '"');
+        header('Content-Length: ' . filesize($targetPath));
+        readfile($targetPath);
+        exit;
+    } else {
+        if (!class_exists('ZipArchive')) {
+            die("A extensão ZipArchive do PHP não está ativada no seu servidor.");
+        }
+        $zipName = (basename($targetPath) ? basename($targetPath) : 'raiz') . '_' . date('Y-m-d_His') . '.zip';
+        $tmpZip = sys_get_temp_dir() . '/' . uniqid('zip_') . '_' . $zipName;
+
+        $zip = new ZipArchive();
+        if ($zip->open($tmpZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+            die("Falha ao criar o arquivo ZIP temporário.");
+        }
+        
+        if (!function_exists('add_folder_to_zip_public')) {
+            function add_folder_to_zip_public($zip, $absFolder, $zipFolder) {
+                $zip->addEmptyDir($zipFolder);
+                $files = @scandir($absFolder) ?: [];
+                foreach ($files as $file) {
+                    if ($file === '.' || $file === '..') continue;
+                    $full = "$absFolder/$file";
+                    $zipRel = "$zipFolder/$file";
+                    if (is_dir($full)) {
+                        add_folder_to_zip_public($zip, $full, $zipRel);
+                    } else {
+                        $zip->addFile($full, $zipRel);
+                    }
+                }
+            }
+        }
+        
+        add_folder_to_zip_public($zip, $targetPath, basename($targetPath) ?: 'raiz');
+        $zip->close();
+        
+        if (file_exists($tmpZip)) {
+            header('Content-Type: application/zip');
+            header('Content-Disposition: attachment; filename="' . $zipName . '"');
+            header('Content-Length: ' . filesize($tmpZip));
+            readfile($tmpZip);
+            @unlink($tmpZip);
+            exit;
+        } else {
+            die("Erro: o arquivo zip gerado estava vazio.");
+        }
+    }
+}
+
+if (isset($_GET['serve']) && !$isDir) {
     $mime = mime_content_type($targetPath) ?: 'application/octet-stream';
+    if (strpos($mime, 'text/') === 0 || in_array(pathinfo($targetPath, PATHINFO_EXTENSION), ['js', 'json', 'xml', 'md', 'env', 'css', 'php', 'sql', 'py'])) {
+        $mime = 'text/plain; charset=utf-8';
+    }
     header('Content-Type: ' . $mime);
-    header('Content-Disposition: attachment; filename="' . basename($targetPath) . '"');
     header('Content-Length: ' . filesize($targetPath));
     readfile($targetPath);
+    exit;
+}
+
+if (isset($_GET['read_file']) && !$isDir) {
+    header('Content-Type: application/json; charset=utf-8');
+    $content = file_get_contents($targetPath);
+    echo json_encode(['success' => true, 'content' => $content]);
     exit;
 }
 
@@ -93,6 +155,18 @@ function format_size($bytes) {
     <title>Compartilhamento - KodeWeb</title>
     <link rel="icon" type="image/svg+xml" href="logo.svg">
     <link rel="apple-touch-icon" href="logo.svg">
+    <link rel="stylesheet" href="style.css?v=<?= time() ?>">
+    <!-- CDNs: Ace Editor, SheetJS, Mammoth.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js" referrerpolicy="no-referrer"></script>
+    <script>
+        const PUBLIC_SHARE_CODE = <?= json_encode($code) ?>;
+        const APP_VERSION = "public-mode";
+        function basename(str) { return str.split('/').pop(); }
+        function strToExt(ext) { return (ext || '').toString().toLowerCase(); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    </script>
     <style>
         :root {
             --bg-primary: #0b0114;
@@ -109,6 +183,9 @@ function format_size($bytes) {
             background-color: var(--bg-primary);
             color: var(--text-primary);
             margin: 0; padding: 20px;
+            overflow: auto !important;
+            height: auto !important;
+            display: block !important;
         }
         .header {
             text-align: center; margin-bottom: 30px;
@@ -155,6 +232,11 @@ function format_size($bytes) {
             transition: 0.2s;
             white-space: nowrap;
             flex-shrink: 0;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .file-item .btn-download {
+            width: 155px;
         }
         .btn-download:hover {
             background: var(--accent);
@@ -162,9 +244,22 @@ function format_size($bytes) {
             box-shadow: 0 0 10px rgba(189,0,255,0.4);
         }
         
+        .btn-wrapper {
+            display: flex;
+            gap: 8px;
+        }
         @media (max-width: 600px) {
             .file-item { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .btn-download { align-self: stretch; text-align: center; margin-top: 5px; }
+            .btn-wrapper { width: 100%; flex-direction: column; gap: 6px; margin-top: 5px; }
+            .btn-download { text-align: center; margin-top: 0; }
+            .file-item .btn-download { width: 100%; }
+        }
+        
+        /* Focus state for keyboard navigation */
+        .file-item.kb-focused {
+            background: var(--bg-hover);
+            outline: 1px solid var(--accent);
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -179,27 +274,101 @@ function format_size($bytes) {
             <div style="text-align: center; padding: 30px;">
                 <div style="font-size: 64px; margin-bottom: 10px;">📄</div>
                 <div style="margin-bottom: 25px; font-size: 18px; font-weight: 500;"><?= htmlspecialchars(basename($targetPath)) ?></div>
-                <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($sub) ?>&download=1" class="btn-download" style="padding: 12px 24px; font-size: 16px;">Baixar Arquivo (<?= format_size(filesize($targetPath)) ?>)</a>
+                <div class="btn-wrapper" style="justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+                    <button onclick="openFileViewer('<?= addslashes($sub) ?>', '<?= addslashes(basename($targetPath)) ?>')" class="btn-download" style="padding: 12px 24px; font-size: 16px; background:transparent; color:var(--text-primary); border-color:var(--border-color); cursor:pointer;">Visualizar</button>
+                    <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($sub) ?>&download=1" class="btn-download" style="padding: 12px 24px; font-size: 16px;">Baixar Arquivo (<?= format_size(filesize($targetPath)) ?>)</a>
+                </div>
             </div>
         <?php elseif (empty($files)): ?>
             <div style="text-align: center; color: var(--text-muted); padding: 30px;">Esta pasta está vazia.</div>
         <?php else: ?>
             <ul class="file-list">
+                <?php if ($sub !== ''): 
+                    $sub_normalized = str_replace('\\', '/', $sub);
+                    $parent_sub = dirname($sub_normalized);
+                    if ($parent_sub === '.' || $parent_sub === '/' || $parent_sub === '\\') {
+                        $parent_sub = '';
+                    }
+                ?>
+                <li class="file-item" style="padding: 0;">
+                    <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($parent_sub) ?>" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; text-decoration: none; color: inherit;">
+                        <span class="file-icon">⬅️</span>
+                        <span class="file-name" style="font-weight: 600;">Voltar</span>
+                    </a>
+                </li>
+                <?php endif; ?>
+                
                 <?php foreach($files as $f): ?>
                 <li class="file-item">
-                    <div class="file-info">
-                        <span class="file-icon"><?= $f['is_dir'] ? '📂' : '📄' ?></span>
-                        <span class="file-name"><?= htmlspecialchars($f['name']) ?></span>
-                    </div>
-                    <?php if (!$f['is_dir']): ?>
-                        <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($f['sub_path']) ?>&download=1" class="btn-download">Baixar (<?= format_size($f['size']) ?>)</a>
+                    <?php if ($f['is_dir']): ?>
+                        <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($f['sub_path']) ?>" style="display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; color: inherit;">
+                            <span class="file-icon">📂</span>
+                            <span class="file-name"><?= htmlspecialchars($f['name']) ?></span>
+                        </a>
+                        <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($f['sub_path']) ?>&download=1" class="btn-download" style="border-color: var(--text-muted); color: var(--text-primary); background: transparent;">Baixar ZIP</a>
                     <?php else: ?>
-                        <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($f['sub_path']) ?>" class="btn-download" style="border-color: var(--text-muted); color: var(--text-primary); background: transparent;">Abrir Pasta</a>
+                        <a href="javascript:void(0)" onclick="openFileViewer('<?= addslashes($f['sub_path']) ?>', '<?= addslashes($f['name']) ?>')" style="display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; color: inherit;">
+                            <span class="file-icon">📄</span>
+                            <span class="file-name"><?= htmlspecialchars($f['name']) ?></span>
+                        </a>
+                        <div class="btn-wrapper">
+                            <button onclick="openFileViewer('<?= addslashes($f['sub_path']) ?>', '<?= addslashes($f['name']) ?>')" class="btn-download" style="background:transparent; color:var(--text-primary); border-color:var(--border-color); cursor:pointer;">Visualizar</button>
+                            <a href="public.php?code=<?= urlencode($code) ?>&sub=<?= urlencode($f['sub_path']) ?>&download=1" class="btn-download">Baixar (<?= format_size($f['size']) ?>)</a>
+                        </div>
                     <?php endif; ?>
                 </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
     </div>
+
+    <!-- Modais e Toast -->
+    <div id="toast-container" style="position: fixed; bottom: 70px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+    <?php require 'templates/modals.php'; ?>
+    
+    <script src="app/state.js"></script>
+    <script src="app/viewer.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const items = Array.from(document.querySelectorAll('.file-item'));
+            if (items.length === 0) return;
+            
+            let currentIndex = -1;
+
+            document.addEventListener('keydown', (e) => {
+                // Se a modal estiver aberta, não intercepte a navegação da lista
+                const modal = document.getElementById('modal-viewer');
+                if (modal && modal.classList.contains('active')) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentIndex < items.length - 1) {
+                        if (currentIndex >= 0) items[currentIndex].classList.remove('kb-focused');
+                        currentIndex++;
+                        items[currentIndex].classList.add('kb-focused');
+                        items[currentIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentIndex > 0) {
+                        items[currentIndex].classList.remove('kb-focused');
+                        currentIndex--;
+                        items[currentIndex].classList.add('kb-focused');
+                        items[currentIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                } else if (e.key === 'Enter') {
+                    if (currentIndex >= 0 && currentIndex < items.length) {
+                        e.preventDefault();
+                        // Simula o clique no primeiro elemento clicável (.file-info a, ou a)
+                        const link = items[currentIndex].querySelector('a');
+                        if (link) {
+                            link.click();
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

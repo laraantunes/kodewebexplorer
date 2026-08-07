@@ -3,6 +3,13 @@
 let aceEditorInstance = null;
 let currentViewerFilePath = '';
 
+function getServeUrl(relPath) {
+    if (typeof PUBLIC_SHARE_CODE !== 'undefined' && PUBLIC_SHARE_CODE) {
+        return `public.php?code=${encodeURIComponent(PUBLIC_SHARE_CODE)}&sub=${encodeURIComponent(relPath)}&serve=1`;
+    }
+    return `api/serve.php?path=${encodeURIComponent(relPath)}`;
+}
+
 async function openFileViewer(relPath, fallbackName = '') {
     currentViewerFilePath = relPath;
     const filename = fallbackName || basename(relPath);
@@ -39,7 +46,7 @@ async function openFileViewer(relPath, fallbackName = '') {
         const imgEl = document.getElementById('viewer-img-el');
         const dims = document.getElementById('viewer-img-dims');
         imgWrap.style.display = 'flex';
-        imgEl.src = `api/serve.php?path=${encodeURIComponent(relPath)}`;
+        imgEl.src = getServeUrl(relPath);
         imgEl.onload = () => {
             if (dims) dims.innerText = `Dimensões Reais: ${imgEl.naturalWidth} x ${imgEl.naturalHeight} px`;
         };
@@ -53,7 +60,7 @@ async function openFileViewer(relPath, fallbackName = '') {
         const audioTitle = document.getElementById('audio-filename-display');
         audioWrap.style.display = 'flex';
         audioTitle.innerText = filename;
-        audioEl.src = `api/serve.php?path=${encodeURIComponent(relPath)}`;
+        audioEl.src = getServeUrl(relPath);
         audioEl.play().catch(e => console.log('Autoplay prevent or error:', e));
         return;
     }
@@ -63,7 +70,7 @@ async function openFileViewer(relPath, fallbackName = '') {
         const videoWrap = document.getElementById('video-wrapper');
         const videoEl = document.getElementById('viewer-video-el');
         videoWrap.style.display = 'flex';
-        videoEl.src = `api/serve.php?path=${encodeURIComponent(relPath)}`;
+        videoEl.src = getServeUrl(relPath);
         videoEl.play().catch(e => console.log('Autoplay prevent or error:', e));
         return;
     }
@@ -79,7 +86,7 @@ async function openFileViewer(relPath, fallbackName = '') {
         sheetContent.innerHTML = '<div style="text-align:center; padding:50px; color:#fff;">📊 Carregando tabela Excel interativa via SheetJS...</div>';
 
         try {
-            const res = await fetch(`api/serve.php?path=${encodeURIComponent(relPath)}`);
+            const res = await fetch(getServeUrl(relPath));
             const arrayBuffer = await res.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
@@ -113,7 +120,7 @@ async function openFileViewer(relPath, fallbackName = '') {
         docContent.innerHTML = '<div style="text-align:center; padding:50px; color:#fff;">📘 Convertendo Word para Reading Mode com Mammoth.js...</div>';
 
         try {
-            const res = await fetch(`api/serve.php?path=${encodeURIComponent(relPath)}`);
+            const res = await fetch(getServeUrl(relPath));
             const arrayBuffer = await res.arrayBuffer();
             if (typeof mammoth !== 'undefined') {
                 const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
@@ -131,7 +138,7 @@ async function openFileViewer(relPath, fallbackName = '') {
     if (ext === 'pdf') {
         const iframe = document.getElementById('pdf-viewer-frame');
         iframe.style.display = 'block';
-        iframe.src = `api/serve.php?path=${encodeURIComponent(relPath)}#view=FitH`;
+        iframe.src = getServeUrl(relPath) + '#view=FitH';
         return;
     }
 
@@ -140,12 +147,23 @@ async function openFileViewer(relPath, fallbackName = '') {
     if (textExts.includes(ext) || ext === '') {
         const aceWrap = document.getElementById('ace-editor-wrapper');
         aceWrap.style.display = 'flex';
-        if (saveBtn) saveBtn.style.display = 'inline-flex';
+        
+        const isPublic = typeof PUBLIC_SHARE_CODE !== 'undefined';
+        if (saveBtn) saveBtn.style.display = isPublic ? 'none' : 'inline-flex';
+        
+        const saveHint = document.getElementById('ace-save-hint');
+        if (saveHint) saveHint.style.display = isPublic ? 'none' : 'inline';
 
-        const res = await apiGet('files', { action: 'read_file', path: relPath });
-        if (!res.success) {
-            showToast("Erro ao carregar conteúdo do arquivo de texto.", "error");
-            return;
+        let fileContent = '';
+        if (isPublic) {
+            const pubRes = await fetch(`public.php?code=${encodeURIComponent(PUBLIC_SHARE_CODE)}&sub=${encodeURIComponent(relPath)}&read_file=1`);
+            const data = await pubRes.json();
+            if (!data.success) { showToast("Erro ao carregar conteúdo do arquivo.", "error"); return; }
+            fileContent = data.content;
+        } else {
+            const apiRes = await apiGet('files', { action: 'read_file', path: relPath });
+            if (!apiRes.success) { showToast("Erro ao carregar conteúdo do arquivo de texto.", "error"); return; }
+            fileContent = apiRes.content;
         }
 
         if (!aceEditorInstance && typeof ace !== 'undefined') {
@@ -168,7 +186,8 @@ async function openFileViewer(relPath, fallbackName = '') {
         const mode = getAceMode(ext);
         document.getElementById('ace-mode-label').innerText = mode.toUpperCase();
         aceEditorInstance.session.setMode(`ace/mode/${mode}`);
-        aceEditorInstance.setValue(res.content || '', -1);
+        aceEditorInstance.setValue(fileContent || '', -1);
+        aceEditorInstance.setReadOnly(isPublic);
         return;
     }
 
@@ -208,7 +227,11 @@ async function saveAceEditorContent() {
 
 function downloadCurrentViewerFile() {
     if (!currentViewerFilePath) return;
-    window.location.href = `api/download.php?items=${encodeURIComponent(JSON.stringify([currentViewerFilePath]))}`;
+    if (typeof PUBLIC_SHARE_CODE !== 'undefined' && PUBLIC_SHARE_CODE) {
+        window.location.href = `public.php?code=${encodeURIComponent(PUBLIC_SHARE_CODE)}&sub=${encodeURIComponent(currentViewerFilePath)}&download=1`;
+    } else {
+        window.location.href = `api/download.php?items=${encodeURIComponent(JSON.stringify([currentViewerFilePath]))}`;
+    }
 }
 
 function closeViewerModal() {
@@ -227,7 +250,7 @@ function closeViewerModal() {
     currentViewerFilePath = '';
 }
 
-// Add fullscreen event for video
+// Add fullscreen event for video and close modal on ESC/outside click
 document.addEventListener('DOMContentLoaded', () => {
     const fsBtn = document.getElementById('viewer-video-fullscreen-btn');
     const videoEl = document.getElementById('viewer-video-el');
@@ -239,6 +262,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 videoEl.webkitRequestFullscreen();
             } else if (videoEl.msRequestFullscreen) { /* IE11 */
                 videoEl.msRequestFullscreen();
+            }
+        });
+    }
+
+    // Fechar modal ao apertar ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('modal-viewer');
+            if (overlay && overlay.classList.contains('active')) {
+                closeViewerModal();
+            }
+        }
+    });
+
+    // Fechar modal ao clicar fora (no overlay)
+    const viewerOverlay = document.getElementById('modal-viewer');
+    if (viewerOverlay) {
+        viewerOverlay.addEventListener('mousedown', (e) => {
+            if (e.target === viewerOverlay) {
+                closeViewerModal();
             }
         });
     }

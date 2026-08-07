@@ -34,7 +34,10 @@ function updateDetailsPanel() {
         pathVal.innerText = AppState.currentPath === '' ? '/' : ('/' + AppState.currentPath);
         
         if (gridActions) gridActions.style.display = 'grid';
-        if (btnOpen) btnOpen.innerHTML = '📂 Abrir Pasta';
+        if (btnOpen) btnOpen.style.display = 'none';
+        
+        const btnShare = document.getElementById('detail-btn-share');
+        if (btnShare) btnShare.style.display = 'none';
         
         return;
     }
@@ -50,6 +53,7 @@ function updateDetailsPanel() {
         subtitle.innerText = item.is_dir ? 'Pasta do Servidor' : ('Arquivo ' + (item.ext ? item.ext.toUpperCase() : ''));
         
         if (btnOpen) {
+            btnOpen.style.display = 'block';
             btnOpen.innerHTML = item.is_dir ? '📁 Abrir Pasta' : '👁️ Abrir / Visualizar';
         }
         
@@ -59,6 +63,9 @@ function updateDetailsPanel() {
         permsVal.innerText = item.perms || '-';
         pathVal.innerText = '/' + item.path;
         
+        const btnShare = document.getElementById('detail-btn-share');
+        if (btnShare) btnShare.style.display = item.is_dir ? 'none' : 'block';
+
         // Se for imagem com tamanho razoável, carregar miniatura preview em alta definição
         if (!item.is_dir && isImage(item.ext) && item.size < 6000000) {
             iconBox.style.display = 'none';
@@ -143,6 +150,24 @@ function togglePropertiesPanel() {
             if (rRight) rRight.style.display = 'none';
             if (btnToggle) btnToggle.classList.remove('active');
             localStorage.setItem('kw_explorer_details_open', 'false');
+        }
+    }
+}
+
+function copyDetailPath() {
+    const pathVal = document.getElementById('detail-path');
+    if (!pathVal) return;
+    
+    const pathText = pathVal.innerText;
+    if (pathText && pathText !== '-' && pathText !== 'Vários caminhos da seleção') {
+        if (typeof copyTextToClipboard === 'function') {
+            copyTextToClipboard(pathText, 'Caminho copiado para a área de transferência');
+        } else {
+            console.warn("copyTextToClipboard indisponível");
+        }
+    } else if (pathText === 'Vários caminhos da seleção') {
+        if (typeof showToast === 'function') {
+            showToast('Não é possível copiar múltiplos caminhos de uma vez', 'warning');
         }
     }
 }

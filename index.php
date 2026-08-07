@@ -52,16 +52,16 @@ $resolved_ws = realpath($workspace_path) ?: $workspace_path;
 
     <!-- Menu de Contexto (Clique direito sobre arquivo ou pasta) -->
     <div class="context-menu" id="file-context-menu">
-        <div class="context-menu-item" onclick="handleAction('open')">👁️ Abrir / Visualizar</div>
+        <div class="context-menu-item" id="ctx-btn-open" onclick="handleAction('open')">👁️ Abrir / Visualizar</div>
         <div class="context-menu-item" onclick="handleAction('download')">📥 Download <span id="ctx-dl-label"></span></div>
-        <div class="context-menu-item" onclick="handleAction('share')">📤 Compartilhar</div>
+        <div class="context-menu-item" id="ctx-btn-share" onclick="handleAction('share')">📤 Compartilhar</div>
         <div class="context-menu-item" onclick="handleAction('get_link')">🔗 Gerar Link</div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" onclick="handleAction('rename')">✏️ Renomear...</div>
         <div class="context-menu-item" onclick="handleAction('copy')">📋 Copiar para...</div>
         <div class="context-menu-item" onclick="handleAction('move')">📦 Mover para...</div>
         <div class="context-menu-separator"></div>
-        <div class="context-menu-item" onclick="handleAction('delete')" style="color: var(--accent-danger);">🗑️ Excluir Seleção</div>
+        <div class="context-menu-item" id="ctx-btn-delete" onclick="handleAction('delete')" style="color: var(--accent-danger);">🗑️ Excluir Seleção</div>
         <div class="context-menu-item" onclick="handleAction('details')">ℹ️ Propriedades</div>
     </div>
 

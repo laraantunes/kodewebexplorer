@@ -7,7 +7,8 @@ const AppState = {
     viewMode: 'grid',  // 'grid' ou 'list'
     clipboard: { action: null, items: [] },
     isSearching: false,
-    searchQuery: ''
+    searchQuery: '',
+    focusedPanel: 'list' // 'list' ou 'tree'
 };
 
 function showToast(message, type = 'info', duration = 3500) {
@@ -143,4 +144,37 @@ function navigateUp() {
     parts.pop();
     const parentPath = parts.join('/');
     navigateTo(parentPath);
+}
+
+function copyTextToClipboard(text, successMsg = 'Copiado para a área de transferência') {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (typeof showToast === 'function') showToast(successMsg, 'success');
+            else alert(successMsg);
+        }).catch(err => {
+            console.error('Erro ao copiar', err);
+            if (typeof showToast === 'function') showToast('Erro ao copiar', 'error');
+        });
+    } else {
+        try {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            if (successful) {
+                if (typeof showToast === 'function') showToast(successMsg, 'success');
+                else alert(successMsg);
+            } else {
+                if (typeof showToast === 'function') showToast('Falha ao copiar', 'error');
+            }
+        } catch (err) {
+            console.error('Fallback copy error', err);
+            if (typeof showToast === 'function') showToast('Erro ao copiar', 'error');
+        }
+    }
 }
