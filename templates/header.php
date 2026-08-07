@@ -10,6 +10,7 @@
         <ul class="breadcrumb-list" id="breadcrumb-list">
             <li class="breadcrumb-item active">📁 Raiz</li>
         </ul>
+        <button class="icon-btn" onclick="openGoToPathModal()" title="Ir para o caminho... (Ctrl + P)" style="margin-left: auto; padding: 2px 6px; font-size: 14px; opacity: 0.7; color: var(--text);">🧭</button>
     </div>
 
     <!-- Campo de Busca em Tempo Real e Seletor de Escopo -->

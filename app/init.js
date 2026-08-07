@@ -135,6 +135,13 @@ function initKeyboardShortcuts() {
     });
 
     document.addEventListener('keydown', (e) => {
+        // Atalho Ctrl+P ou Cmd+P para Ir para Caminho
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+            e.preventDefault();
+            openGoToPathModal();
+            return;
+        }
+
         if (e.key === 'Escape') {
             const activeModal = document.querySelector('.modal-overlay.active');
             if (activeModal) {
@@ -567,4 +574,33 @@ window.AppDialog = {
 function closeModal(modalId) {
     const el = document.getElementById(modalId);
     if (el) el.classList.remove('active');
+}
+
+// Funções para o modal "Ir para Caminho"
+function openGoToPathModal() {
+    if (typeof closeMobileDrawers === 'function') closeMobileDrawers();
+    const modal = document.getElementById('modal-goto-path');
+    if (modal) {
+        modal.classList.add('active');
+        const input = document.getElementById('goto-path-input');
+        if (input) {
+            input.value = AppState.currentPath;
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 50);
+        }
+    }
+}
+
+function submitGoToPath(event) {
+    event.preventDefault();
+    const input = document.getElementById('goto-path-input');
+    if (input) {
+        let path = input.value.trim();
+        // Remove barras iniciais extras
+        path = path.replace(/^\/+/, '');
+        navigateTo(path);
+        closeModal('modal-goto-path');
+    }
 }
