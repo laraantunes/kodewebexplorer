@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Criptografar via AES-256-CBC
         $encrypted = KodeWebEncryption::encrypt($auth_data);
-        if (file_put_contents($auth_file, $encrypted) !== false) {
+        if (@file_put_contents($auth_file, $encrypted) !== false) {
             // Salvar configurações em .env
             if (empty($workspace)) {
                 // Por padrão explora a raiz do servidor web (ex: htdocs ou www)
@@ -224,7 +224,7 @@ if (file_exists(__DIR__ . '/.env')) {
         <form method="POST" action="">
             <div class="form-group">
                 <label class="form-label" for="username">Usuário Administrador</label>
-                <input type="text" class="form-input" id="username" name="username" placeholder="ex: lara" required <?= !$is_installed ? 'autofocus' : '' ?>>
+                <input type="text" class="form-input" id="username" name="username" placeholder="ex: admin" required <?= !$is_installed ? 'autofocus' : '' ?>>
             </div>
             
             <div class="form-group">

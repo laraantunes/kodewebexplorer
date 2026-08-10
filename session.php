@@ -22,7 +22,11 @@ ini_set('session.gc_maxlifetime', $lifetime);
 require_once __DIR__ . '/config.php';
 $is_localhost = (isset($local) && $local) || in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', '::1']) || in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1']);
 
-if ($is_localhost) {
+$is_secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+             (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+// Se for localhost OU se a conexão atual não for HTTPS, não podemos forçar secure=true (o navegador rejeita o cookie)
+if ($is_localhost || !$is_secure) {
     session_set_cookie_params([
         'lifetime' => $lifetime,
         'path' => '/',

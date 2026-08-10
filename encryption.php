@@ -14,8 +14,9 @@ class KodeWebEncryption {
             if ($key === false) {
                 $key = random_bytes(32);
             }
-            file_put_contents(self::$key_file, $key);
-            @chmod(self::$key_file, 0600);
+            if (@file_put_contents(self::$key_file, $key) !== false) {
+                @chmod(self::$key_file, 0600);
+            }
         } else {
             $key = file_get_contents(self::$key_file);
         }
