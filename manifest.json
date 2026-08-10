@@ -1,7 +1,7 @@
 {
     "name": "KodeWeb Explorer",
     "short_name": "KW Explorer",
-    "description": "Gerenciador de Arquivos Web e Hospedagem na nuvem da família KodeWeb IDE",
+    "description": "Gerenciador de Arquivos Web e Hospedagem na nuvem da família KodeWeb",
     "start_url": "./index.php",
     "display": "standalone",
     "orientation": "any",
@@ -11,7 +11,7 @@
         {
             "src": "logo.svg",
             "type": "image/svg+xml",
-            "sizes": "512x512",
+            "sizes": "any",
             "purpose": "any maskable"
         }
     ],
@@ -26,7 +26,9 @@
             "files": [
                 {
                     "name": "shared_files[]",
-                    "accept": ["*/*"]
+                    "accept": [
+                        "*/*"
+                    ]
                 }
             ]
         }
