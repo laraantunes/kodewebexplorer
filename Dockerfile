@@ -3,6 +3,14 @@ FROM php:8.2-apache
 # Habilitar mod_rewrite do Apache
 RUN a2enmod rewrite headers
 
+# Instalar dependências necessárias para a Auto-Atualização (cURL e ZIP) e Terminal
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    unzip \
+    nano \
+    procps \
+    && docker-php-ext-install zip
+
 # Permitir passagem de UID e GID do host no momento do build (útil para mapeamento de volumes no Linux)
 ARG PUID=33
 ARG PGID=33

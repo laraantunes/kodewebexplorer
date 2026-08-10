@@ -41,10 +41,15 @@
             </button>
             <button class="btn-detail" onclick="handleAction('download')">📥 Baixar ZIP</button>
             <button class="btn-detail" onclick="handleAction('rename')">✏️ Renomear</button>
+            
             <button class="btn-detail" id="detail-btn-share" onclick="handleAction('share')">📤 Compartilhar</button>
+            
+            <button class="btn-detail" onclick="handleAction('terminal')" style="background: #000; color: #00ff88; border: 1px solid #333;">🖥️ Terminal</button>
             <button class="btn-detail" onclick="handleAction('get_link')">🔗 Gerar Link</button>
+            
             <button class="btn-detail" onclick="handleAction('copy')">📋 Copiar para</button>
-            <button class="btn-action" onclick="handleAction('move')" style="padding: 8px 12px; font-size: 12px;">📦 Mover para</button>
+            <button class="btn-detail" onclick="handleAction('move')">📦 Mover para</button>
+            
             <button class="btn-detail btn-danger btn-full" onclick="handleAction('delete')" style="margin-top: 5px;">
                 🗑️ Excluir Item
             </button>

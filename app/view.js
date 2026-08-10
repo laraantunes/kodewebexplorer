@@ -324,7 +324,7 @@ async function handleAction(actionType) {
     let firstItem = null;
 
     if (count === 0) {
-        if (actionType !== 'open' && actionType !== 'download' && actionType !== 'share' && actionType !== 'get_link' && actionType !== 'rename' && actionType !== 'copy' && actionType !== 'move' && actionType !== 'delete' && actionType !== 'details') {
+        if (actionType !== 'open' && actionType !== 'download' && actionType !== 'share' && actionType !== 'get_link' && actionType !== 'rename' && actionType !== 'copy' && actionType !== 'move' && actionType !== 'delete' && actionType !== 'details' && actionType !== 'terminal') {
             return;
         }
         firstPath = AppState.currentPath;
@@ -480,6 +480,14 @@ async function handleAction(actionType) {
                     const btnToggle = document.getElementById('btn-toggle-props');
                     if (btnToggle) btnToggle.classList.add('active');
                 }
+            }
+            break;
+
+        case 'terminal':
+            let termPath = firstItem.is_dir ? firstPath : firstPath.split('/').slice(0, -1).join('/');
+            if (termPath === '') termPath = '/';
+            if (typeof openTerminalModal === 'function') {
+                openTerminalModal(termPath);
             }
             break;
     }

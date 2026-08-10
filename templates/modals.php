@@ -6,3 +6,4 @@
 <?php require 'modals/new_item.php'; ?>
 <?php require 'modals/options.php'; ?>
 <?php require 'modals/dialog.php'; ?>
+<?php require 'modals/terminal.php'; ?>

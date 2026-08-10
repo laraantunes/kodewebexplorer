@@ -3,6 +3,7 @@
 <script src="app/state.js?v=<?= time() ?>"></script>
 <script src="app/explorer.js?v=<?= time() ?>"></script>
 <script src="app/view.js?v=<?= time() ?>"></script>
+<script src="app/terminal.js?v=<?= time() ?>"></script>
 <script src="app/details.js?v=<?= time() ?>"></script>
 <script src="app/viewer.js?v=<?= time() ?>"></script>
 <script src="app/init.js?v=<?= time() ?>"></script>
