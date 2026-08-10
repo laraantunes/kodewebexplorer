@@ -18,7 +18,7 @@ class KodeWebEncryption {
                 @chmod(self::$key_file, 0600);
             }
         } else {
-            $key = file_get_contents(self::$key_file);
+            $key = @file_get_contents(self::$key_file);
         }
         return $key;
     }
