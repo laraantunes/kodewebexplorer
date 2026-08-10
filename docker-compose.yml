@@ -2,7 +2,12 @@ version: '3.8'
 
 services:
   kodeweb_explorer:
-    build: .
+    build:
+      context: .
+      args:
+        # Usa as variáveis de ambiente PUID e PGID se existirem (ex: 1000)
+        - PUID=${PUID:-33}
+        - PGID=${PGID:-33}
     container_name: kodeweb_explorer_app
     ports:
       # Usando a porta 8082 para não conflitar com 8080 (IDE) e 8081 (Lite)

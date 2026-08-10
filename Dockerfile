@@ -3,6 +3,11 @@ FROM php:8.2-apache
 # Habilitar mod_rewrite do Apache
 RUN a2enmod rewrite headers
 
+# Permitir passagem de UID e GID do host no momento do build (útil para mapeamento de volumes no Linux)
+ARG PUID=33
+ARG PGID=33
+RUN usermod -u ${PUID} www-data && groupmod -g ${PGID} www-data
+
 # Configurar o diretório de trabalho
 WORKDIR /var/www/html
 

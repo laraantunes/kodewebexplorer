@@ -440,6 +440,71 @@ async function submitNewItem(event) {
     }
 }
 
+// --- LÓGICA DA ÁRVORE DE DESTINO ---
+window.selectDestItem = async (path, el, hasChildren) => {
+    document.querySelectorAll('.dest-item').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    selectedDestPath = path;
+    if (hasChildren) {
+        await expandDestTreePath(path);
+    }
+};
+
+window.toggleDestTree = async (event, path) => {
+    event.stopPropagation();
+    await expandDestTreePath(path, true);
+};
+
+window.expandDestTreePath = async (relPath, toggle = false) => {
+    const safeId = 'dest-sub-' + relPath.replace(/[^a-zA-Z0-9]/g, '_');
+    const subUl = document.getElementById(safeId);
+    if (!subUl) return;
+    
+    const nodeItem = document.querySelector(`.dest-item[data-dest="${relPath}"]`);
+    const toggleSpan = nodeItem ? nodeItem.querySelector('.tree-toggle') : null;
+    
+    if (subUl.style.display === 'block' && toggle) {
+        subUl.style.display = 'none';
+        if (toggleSpan) toggleSpan.classList.remove('expanded');
+        return;
+    }
+    
+    subUl.style.display = 'block';
+    if (toggleSpan) toggleSpan.classList.add('expanded');
+    
+    if (subUl.children.length === 0) {
+        subUl.innerHTML = '<li style="font-size:11px; color:var(--text-muted); padding:2px 10px;">Lendo...</li>';
+        const res = await apiGet('files', { action: 'list_tree', path: relPath });
+        subUl.innerHTML = '';
+        if (res.success && res.folders) {
+            res.folders.forEach(f => {
+                subUl.appendChild(createDestTreeNode(f));
+            });
+        }
+    }
+};
+
+window.createDestTreeNode = (folder) => {
+    const li = document.createElement('li');
+    li.className = 'tree-node';
+    
+    const hasChildren = folder.has_children;
+    const toggleIcon = hasChildren ? '▶' : '';
+    const safeId = 'dest-sub-' + folder.path.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    li.innerHTML = `
+        <div class="tree-item dest-item" data-dest="${folder.path}" onclick="selectDestItem('${folder.path}', this, ${hasChildren})">
+            <span class="tree-toggle ${hasChildren ? 'has-child' : ''}" onclick="toggleDestTree(event, '${folder.path}')">${toggleIcon}</span>
+            <span class="tree-icon">📂</span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${folder.name}</span>
+        </div>
+        <ul class="tree-list" id="${safeId}" style="display: none;"></ul>
+    `;
+    return li;
+};
+
+let selectedDestPath = '';
+
 // --- MODAL DE DESTINO PARA MOVER / COPIAR ---
 async function openDestinationModal(actionType) {
     targetActionForDestination = actionType;
@@ -452,25 +517,27 @@ async function openDestinationModal(actionType) {
     title.innerText = actionType === 'move' ? '📦 Mover para pasta...' : '📋 Copiar para pasta...';
     treeDiv.innerHTML = 'Lendo estrutura da hospedagem...';
     modal.classList.add('active');
+    selectedDestPath = '';
 
     const res = await apiGet('files', { action: 'list_tree', path: '' });
     if (res.success && res.folders) {
-        let html = '<ul class="tree-list root-list">';
-        html += `<li class="tree-node"><div class="tree-item dest-item active" data-dest="" onclick="selectDestItem('', this)">🏠 Raiz</div></li>`;
+        treeDiv.innerHTML = '';
+        const rootUl = document.createElement('ul');
+        rootUl.className = 'tree-list root-list';
+        
+        const rootLi = document.createElement('li');
+        rootLi.className = 'tree-node';
+        rootLi.innerHTML = `<div class="tree-item dest-item active" data-dest="" onclick="selectDestItem('', this, false)"><span class="tree-icon" style="color: #00ff88;">🏠</span><span>Raiz</span></div>`;
+        rootUl.appendChild(rootLi);
+        
         res.folders.forEach(f => {
-            html += `<li class="tree-node"><div class="tree-item dest-item" data-dest="${f.path}" onclick="selectDestItem('${f.path}', this)">📂 ${f.name}</div></li>`;
+            rootUl.appendChild(createDestTreeNode(f));
         });
-        html += '</ul>';
-        treeDiv.innerHTML = html;
+        
+        treeDiv.appendChild(rootUl);
 
         // Atribuir o handler ao botão de confirmar
         const btnConf = document.getElementById('confirm-dest-btn');
-        let selectedDestPath = '';
-        window.selectDestItem = (path, el) => {
-            document.querySelectorAll('.dest-item').forEach(x => x.classList.remove('active'));
-            el.classList.add('active');
-            selectedDestPath = path;
-        };
         btnConf.onclick = async () => {
             const resAction = await apiPost('files', { action: targetActionForDestination, items: AppState.selectedItems, destination: selectedDestPath });
             if (resAction.success) {
