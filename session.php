@@ -2,8 +2,14 @@
 // session.php - Gerenciador de sessões e armazenamento seguro do KodeWeb Explorer
 
 $session_path = __DIR__ . '/data/sessions';
+
+// Fallback para Docker: se não conseguir escrever na pasta mapeada do Windows
+if (file_exists('/.dockerenv')) {
+    $session_path = '/tmp/kodeweb_sessions';
+}
+
 if (!is_dir($session_path)) {
-    @mkdir($session_path, 0755, true);
+    @mkdir($session_path, 0777, true);
     if (!file_exists(__DIR__ . '/data/.htaccess')) {
         @file_put_contents(__DIR__ . '/data/.htaccess', "Require all denied\nDeny from all");
     }
