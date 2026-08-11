@@ -17,8 +17,14 @@
         <div class="modal-body no-padding" id="viewer-body">
             <!-- A: EDITOR ACE (TEXTOS / CÓDIGO FONTE) -->
             <div id="ace-editor-wrapper" style="width: 100%; height: 100%; display: none; flex: 1; flex-direction: column;">
-                <div class="viewer-top-toolbar">
-                    <span style="font-size: 12px; color: var(--text-muted);">Tema: <strong>Dracula</strong> | Sintaxe: <span id="ace-mode-label">Texto</span></span>
+                <div class="viewer-top-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Sintaxe: <span id="ace-mode-label">Texto</span></span>
+                    <div class="editor-mobile-actions" style="display: none; gap: 5px;">
+                        <button class="btn-action" id="viewer-save-btn-mobile" onclick="saveAceEditorContent()" style="background: var(--accent-success); color: #000; font-weight: 700; padding: 4px 8px; font-size: 11px;">
+                            💾 Salvar
+                        </button>
+                        <button class="btn-action" onclick="downloadCurrentViewerFile()" style="padding: 4px 8px; font-size: 11px;">📥 Download</button>
+                    </div>
                 </div>
                 <div id="ace-editor-container"></div>
             </div>
@@ -32,6 +38,30 @@
             <!-- C: VISUALIZADOR DE DOCUMENTOS WORD E TXT (MAMMOTH / READING MODE) -->
             <div id="document-wrapper" style="display: none; overflow-y: auto; width: 100%; height: 100%; background: #12051f;">
                 <div id="document-content" class="document-reading-mode"></div>
+            </div>
+
+            <!-- C2: VISUALIZADOR DE APRESENTAÇÕES (PPTXVIEWJS) -->
+            <div id="pptx-wrapper" style="display: none; overflow-y: auto; width: 100%; height: 100%; background: #12051f; text-align: center; padding: 20px; flex-direction: column;">
+                <div id="pptx-loading" style="display: none; text-align:center; padding:50px; color:#fff;">📊 Carregando apresentação...</div>
+                
+                <div id="pptx-controls" style="display: none; justify-content: center; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <button class="btn-action" id="pptx-prev-btn" onclick="if(window.currentPptxViewer) { Promise.resolve(window.currentPptxViewer.previousSlide()).then(() => updatePptxCounter()); }">⬅️ Anterior</button>
+                    <span id="pptx-counter" style="color: #fff; font-size: 14px; font-weight: 600;">Slide 1</span>
+                    <button class="btn-action" id="pptx-next-btn" onclick="if(window.currentPptxViewer) { Promise.resolve(window.currentPptxViewer.nextSlide()).then(() => updatePptxCounter()); }">Próximo ➡️</button>
+                </div>
+
+                <div id="pptx-canvas-wrapper" style="flex: 1; display: flex; justify-content: center; align-items: flex-start; overflow: auto; width: 100%;">
+                    <style>
+                        #pptx-container {
+                            width: 95% !important;
+                            max-width: 1600px !important;
+                            max-height: calc(100vh - 180px) !important;
+                            height: auto !important;
+                            object-fit: contain;
+                        }
+                    </style>
+                    <canvas id="pptx-container" style="display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></canvas>
+                </div>
             </div>
 
             <!-- D: VISUALIZADOR DE IMAGENS -->

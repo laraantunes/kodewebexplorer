@@ -21,6 +21,15 @@ async function openFileViewer(relPath, fallbackName = '') {
     if (!overlay || !titleSpan) return;
 
     titleSpan.innerText = filename;
+    
+    // Limpar estilos inline residuais de quando a modal foi fechada
+    overlay.style.display = ''; 
+    const viewerWindow = document.getElementById('viewer-window');
+    if (viewerWindow) {
+        viewerWindow.style.transform = '';
+        viewerWindow.style.opacity = '';
+    }
+    
     overlay.classList.add('active');
 
     // Ocultar todas as seções e redefinir botão de salvar
@@ -28,6 +37,8 @@ async function openFileViewer(relPath, fallbackName = '') {
     document.getElementById('spreadsheet-wrapper').style.display = 'none';
     document.getElementById('spreadsheet-tabs').style.display = 'none';
     document.getElementById('document-wrapper').style.display = 'none';
+    const pptxWrap = document.getElementById('pptx-wrapper');
+    if (pptxWrap) pptxWrap.style.display = 'none';
     document.getElementById('image-wrapper').style.display = 'none';
     const audioWrap = document.getElementById('audio-wrapper');
     if (audioWrap) audioWrap.style.display = 'none';
@@ -37,6 +48,9 @@ async function openFileViewer(relPath, fallbackName = '') {
     document.getElementById('unsupported-wrapper').style.display = 'none';
 
     if (saveBtn) saveBtn.style.display = 'none';
+    const mobileSaveBtn = document.getElementById('viewer-save-btn-mobile');
+    if (mobileSaveBtn) mobileSaveBtn.style.display = 'none';
+    if (viewerWindow) viewerWindow.classList.remove('is-text-editor');
 
     showToast(`Abrindo visualizador para ${filename}...`, "info", 2000);
 
@@ -134,6 +148,66 @@ async function openFileViewer(relPath, fallbackName = '') {
         return;
     }
 
+    // CATEGORIA 3.5: APRESENTAÇÕES (PPTX) COM PPTXVIEWJS
+    if (['pptx'].includes(ext)) {
+        const pptxWrap = document.getElementById('pptx-wrapper');
+        let pptxContainer = document.getElementById('pptx-container');
+        const pptxCanvasWrapper = document.getElementById('pptx-canvas-wrapper');
+        const pptxLoading = document.getElementById('pptx-loading');
+        const pptxControls = document.getElementById('pptx-controls');
+        
+        // RECRIAR O CANVAS PARA DESTRUIR O CONTEXTO WEBGL ANTIGO
+        if (pptxContainer) pptxContainer.remove();
+        pptxContainer = document.createElement('canvas');
+        pptxContainer.id = 'pptx-container';
+        pptxContainer.style.display = 'block';
+        pptxContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+        if (pptxCanvasWrapper) pptxCanvasWrapper.appendChild(pptxContainer);
+
+        pptxWrap.style.display = 'flex';
+        if (pptxControls) pptxControls.style.display = 'none';
+        if (pptxLoading) {
+            pptxLoading.style.display = 'block';
+            pptxLoading.innerHTML = '📊 Carregando apresentação...';
+        }
+        
+        try {
+            let ViewerClass = null;
+            if (typeof window.PPTXViewer !== 'undefined') ViewerClass = window.PPTXViewer;
+            else if (typeof PPTXViewer !== 'undefined') ViewerClass = PPTXViewer;
+            else if (typeof PptxViewJS !== 'undefined') {
+                ViewerClass = PptxViewJS.PPTXViewer || (PptxViewJS.default && PptxViewJS.default.PPTXViewer) || PptxViewJS.default || PptxViewJS;
+            }
+
+            if (ViewerClass && typeof ViewerClass === 'function') {
+                const viewer = new ViewerClass({
+                    canvas: pptxContainer,
+                    width: 1200 // Resolução base para o slide ficar nítido
+                });
+                viewer.loadFromUrl(getServeUrl(relPath)).then(() => {
+                    if (pptxLoading) pptxLoading.style.display = 'none';
+                    if (pptxControls) pptxControls.style.display = 'flex';
+                    
+                    window.currentPptxViewer = viewer;
+                    if (typeof viewer.render === 'function') viewer.render();
+                    if (typeof updatePptxCounter === 'function') updatePptxCounter();
+                }).catch(err => {
+                    if (pptxLoading) pptxLoading.style.display = 'none';
+                    const details = err.errors ? JSON.stringify(err.errors) : '';
+                    console.error("PPTX Error:", err);
+                    pptxWrap.innerHTML = `<div style="color:var(--accent-danger); padding:20px;">Erro ao carregar a apresentação: ${err.message || err} <br/>${details}</div>`;
+                });
+            } else {
+                if (pptxLoading) pptxLoading.style.display = 'none';
+                pptxWrap.innerHTML = `<div style="color:var(--accent-danger); padding:20px;">A biblioteca PptxViewJS não carregou corretamente. Recarregue a página (F5) e tente novamente.</div>`;
+            }
+        } catch (e) {
+            if (pptxLoading) pptxLoading.style.display = 'none';
+            pptxWrap.innerHTML = `<div style="color:var(--accent-danger); padding:20px;">Não foi possível visualizar a apresentação: ${e.message}</div>`;
+        }
+        return;
+    }
+
     // CATEGORIA 4: PDF VIA IFRAME NATIVO
     if (ext === 'pdf') {
         const iframe = document.getElementById('pdf-viewer-frame');
@@ -150,6 +224,11 @@ async function openFileViewer(relPath, fallbackName = '') {
         
         const isPublic = typeof PUBLIC_SHARE_CODE !== 'undefined';
         if (saveBtn) saveBtn.style.display = isPublic ? 'none' : 'inline-flex';
+        const mobileSaveBtn = document.getElementById('viewer-save-btn-mobile');
+        if (mobileSaveBtn) mobileSaveBtn.style.display = isPublic ? 'none' : 'inline-flex';
+        
+        const viewerWindow = document.getElementById('viewer-window');
+        if (viewerWindow) viewerWindow.classList.add('is-text-editor');
         
         const saveHint = document.getElementById('ace-save-hint');
         if (saveHint) saveHint.style.display = isPublic ? 'none' : 'inline';
@@ -235,22 +314,47 @@ function downloadCurrentViewerFile() {
 }
 
 function closeViewerModal() {
-    const overlay = document.getElementById('modal-viewer');
-    if (overlay) overlay.classList.remove('active');
-    const iframe = document.getElementById('pdf-viewer-frame');
-    if (iframe) iframe.src = '';
-    
-    // Stop audio/video
-    const audioEl = document.getElementById('viewer-audio-el');
-    if (audioEl) { audioEl.pause(); audioEl.src = ''; }
-    
-    const videoEl = document.getElementById('viewer-video-el');
-    if (videoEl) { videoEl.pause(); videoEl.src = ''; }
+    const viewerWindow = document.getElementById('viewer-window');
+    const modal = document.getElementById('modal-viewer');
+    viewerWindow.style.transform = 'scale(0.95)';
+    viewerWindow.style.opacity = '0';
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.remove('active'); // OBRIGATÓRIO: Libera a navegação por teclado da tela inicial
+        
+        // Pausar áudio e vídeo
+        const audioEl = document.getElementById('viewer-audio-el');
+        if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+        
+        const videoEl = document.getElementById('viewer-video-el');
+        if (videoEl) { videoEl.pause(); videoEl.src = ''; }
 
-    currentViewerFilePath = '';
+        // Limpar frame de pdf
+        const iframe = document.getElementById('pdf-viewer-frame');
+        if (iframe) iframe.src = '';
+        
+        // Limpar PPTX viewer da memória
+        if (window.currentPptxViewer) {
+            if (typeof window.currentPptxViewer.destroy === 'function') window.currentPptxViewer.destroy();
+            window.currentPptxViewer = null;
+        }
+
+        currentViewerFile = null;
+    }, 250);
 }
 
-// Add fullscreen event for video and close modal on ESC/outside click
+// Controle de contador do PPTX
+window.updatePptxCounter = function() {
+    if (window.currentPptxViewer) {
+        const counterEl = document.getElementById('pptx-counter');
+        if (counterEl) {
+            const current = window.currentPptxViewer.getCurrentSlideIndex() + 1;
+            const total = window.currentPptxViewer.getSlideCount();
+            counterEl.innerHTML = `Slide ${current} de ${total}`;
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const fsBtn = document.getElementById('viewer-video-fullscreen-btn');
     const videoEl = document.getElementById('viewer-video-el');
@@ -266,12 +370,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Fechar modal ao apertar ESC
+    // Eventos de Teclado Global no Modal
     document.addEventListener('keydown', (e) => {
+        const overlay = document.getElementById('modal-viewer');
+        if (!overlay || !overlay.classList.contains('active')) return;
+
+        // Fechar com ESC
         if (e.key === 'Escape') {
-            const overlay = document.getElementById('modal-viewer');
-            if (overlay && overlay.classList.contains('active')) {
-                closeViewerModal();
+            closeViewerModal();
+            return;
+        }
+
+        // Navegação de slides PPTX
+        const pptxWrapper = document.getElementById('pptx-wrapper');
+        if (pptxWrapper && pptxWrapper.style.display !== 'none' && window.currentPptxViewer) {
+            // Próximo Slide (Direita, Baixo, PageDown, Espaço)
+            if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) {
+                e.preventDefault();
+                window.currentPptxViewer.nextSlide();
+                if (typeof updatePptxCounter === 'function') updatePptxCounter();
+            }
+            // Slide Anterior (Esquerda, Cima, PageUp)
+            else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) {
+                e.preventDefault();
+                window.currentPptxViewer.previousSlide();
+                if (typeof updatePptxCounter === 'function') updatePptxCounter();
             }
         }
     });

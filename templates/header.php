@@ -29,6 +29,9 @@
             🔄 <span style="font-size:11px;">Sincronizando...</span>
         </span>
 
+        <button class="top-btn" onclick="loadCurrentFolder()" title="Atualizar Pasta Atual">
+            <span>🔄</span> <span class="btn-label">Atualizar</span>
+        </button>
         <button class="top-btn" onclick="openNewItemModal('folder')" title="Criar Nova Pasta Aqui">
             <span>📁+</span> <span class="btn-label">Pasta</span>
         </button>

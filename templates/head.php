@@ -23,6 +23,11 @@
     <!-- CDN: Mammoth.js para Documentos Word (DOCX) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js" referrerpolicy="no-referrer"></script>
 
+    <!-- CDN: JSZip, Chart.js e PptxViewJS para PowerPoint (PPTX) -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxviewjs@1.1.9/dist/PptxViewJS.min.js"></script>
+
     <script>
         const APP_VERSION = <?= json_encode($app_version) ?>;
         const CURRENT_USERNAME = <?= json_encode($current_username) ?>;

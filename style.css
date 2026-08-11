@@ -1303,3 +1303,19 @@ body {
     background-color: var(--accent);
     color: white;
 }
+
+@media (max-width: 768px) {
+    .viewer-modal.is-text-editor .modal-header .btn-action {
+        display: none !important;
+    }
+    .editor-mobile-actions {
+        display: flex !important;
+    }
+}
+
+#pptx-container canvas {
+    width: 100% !important;
+    height: auto !important;
+    display: block;
+}
+
