@@ -1,5 +1,5 @@
 <!-- Gerenciador de Uploads (Progresso) -->
-<div id="upload-manager" class="upload-manager">
+<div id="upload-manager" class="upload-manager" style="display: none;">
     <div class="upload-manager-header" onclick="toggleUploadManager()">
         <span class="upload-title">
             <span class="upload-icon">📤</span>
