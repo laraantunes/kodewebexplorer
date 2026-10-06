@@ -70,6 +70,8 @@ $resolved_ws = realpath($workspace_path) ?: $workspace_path;
     <!-- Toast Notifications Container -->
     <div id="toast-container" style="position: fixed; bottom: 70px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
+    <?php require 'templates/upload_manager.php'; ?>
+
     <!-- Inputs ocultos de Upload e Comunicação -->
     <input type="file" id="hidden-file-input" multiple style="display: none;" onchange="handleFilesSelected(this)">
     <input type="file" id="hidden-folder-input" webkitdirectory directory multiple style="display: none;" onchange="handleFolderSelected(this)">

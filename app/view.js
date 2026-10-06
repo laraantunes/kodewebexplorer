@@ -541,25 +541,198 @@ async function handleFolderSelected(input) {
     input.value = '';
 }
 
-async function performFileUpload(fileList, relativePaths = null) {
-    showToast(`Iniciando upload de ${fileList.length} arquivo(s) para o servidor...`, "info", 5000);
-    const formData = new FormData();
-    formData.append('target_path', AppState.currentPath);
+let totalUploads = 0;
+let completedUploads = 0;
 
-    if (relativePaths) {
-        formData.append('relative_paths', JSON.stringify(relativePaths));
-    }
+function toggleUploadManager() {
+    const manager = document.getElementById('upload-manager');
+    manager.classList.toggle('minimized');
+}
 
-    for (let i = 0; i < fileList.length; i++) {
-        formData.append('files[]', fileList[i]);
-    }
-
-    const res = await apiPost('upload', formData);
-    if (res.success) {
-        showToast("Upload concluído com sucesso!", "success");
-        loadCurrentFolder();
+function hideUploadManager() {
+    const manager = document.getElementById('upload-manager');
+    const fab = document.getElementById('mobile-upload-fab');
+    
+    manager.style.display = 'none';
+    manager.classList.remove('mobile-active');
+    manager.classList.remove('minimized');
+    
+    if (window.innerWidth <= 768) {
+        if (totalUploads > completedUploads) {
+            fab.style.display = 'flex';
+        } else {
+            fab.style.display = 'none';
+        }
     } else {
-        showToast(`❌ Erro no upload: ${res.error || 'Falha desconhecida'}`, "error", 6000);
+        // Desktop: if uploads are not done, we might want to keep it minimized or fully hide?
+        // the user said "cliquei em fechar e a janelinha só ficou menor". They want it closed.
+        // So just hide it.
+    }
+}
+
+function showUploadManager() {
+    const manager = document.getElementById('upload-manager');
+    const fab = document.getElementById('mobile-upload-fab');
+    manager.style.display = 'flex';
+    manager.classList.remove('minimized');
+    
+    if (window.innerWidth <= 768) {
+        manager.classList.add('mobile-active');
+        fab.style.display = 'none';
+    }
+}
+
+function createUploadItemUI(id, name) {
+    const body = document.getElementById('upload-manager-body');
+    const div = document.createElement('div');
+    div.className = 'upload-item';
+    div.id = `up-item-${id}`;
+    div.innerHTML = `
+        <div class="upload-item-name" title="${name}">${name}</div>
+        <div class="upload-status uploading" id="up-status-${id}">0%</div>
+    `;
+    body.prepend(div);
+}
+
+function updateUploadItemUI(id, status, isError = false) {
+    const statusEl = document.getElementById(`up-status-${id}`);
+    if (statusEl) {
+        statusEl.innerText = status;
+        statusEl.className = 'upload-status ' + (isError ? 'error' : (status === 'Concluído' ? 'success' : 'uploading'));
+    }
+}
+
+function updateUploadCounts() {
+    document.getElementById('upload-count-done').innerText = completedUploads;
+    document.getElementById('upload-count-total').innerText = totalUploads;
+    const badge = document.getElementById('upload-badge');
+    if (badge) {
+        badge.innerText = totalUploads - completedUploads;
+        badge.style.display = (totalUploads - completedUploads <= 0) ? 'none' : 'block';
+    }
+}
+
+function uploadFileWithProgress(formData, id) {
+    return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'api/upload.php', true);
+        
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                updateUploadItemUI(id, `${percent}%`);
+            }
+        };
+        
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    resolve(res);
+                } catch (e) {
+                    resolve({ success: false, error: 'Invalid JSON response' });
+                }
+            } else {
+                resolve({ success: false, error: `HTTP ${xhr.status}` });
+            }
+        };
+        
+        xhr.onerror = function() {
+            resolve({ success: false, error: 'Network error' });
+        };
+        
+        xhr.send(formData);
+    });
+}
+
+async function performFileUpload(fileList, relativePaths = null, destinationPath = null) {
+    showUploadManager();
+    const basePath = destinationPath !== null ? destinationPath : AppState.currentPath;
+    
+    // Convert to array to avoid issues with FileList object during async iteration
+    const filesArray = Array.from(fileList);
+    
+    for (let i = 0; i < filesArray.length; i++) {
+        const file = filesArray[i];
+        const relPath = relativePaths ? relativePaths[i] : file.name;
+        
+        totalUploads++;
+        const id = Date.now() + '-' + i + '-' + Math.floor(Math.random() * 1000);
+        createUploadItemUI(id, relPath);
+        updateUploadCounts();
+        
+        const formData = new FormData();
+        formData.append('target_path', basePath);
+        formData.append('relative_paths', JSON.stringify([relPath]));
+        formData.append('files[]', file);
+        
+        const res = await uploadFileWithProgress(formData, id);
+        
+        if (res.success) {
+            updateUploadItemUI(id, 'Concluído');
+        } else {
+            updateUploadItemUI(id, res.error || 'Erro', true);
+        }
+        
+        completedUploads++;
+        updateUploadCounts();
+    }
+    
+    loadCurrentFolder();
+    if (typeof loadTreeRoot === 'function') loadTreeRoot();
+    
+    // Hide mobile fab if done and panel is not open
+    const manager = document.getElementById('upload-manager');
+    if (window.innerWidth <= 768 && !manager.classList.contains('mobile-active')) {
+        document.getElementById('mobile-upload-fab').style.display = 'none';
+    }
+}
+
+async function processExternalDrop(dataTransfer, destinationPath = null) {
+    const items = dataTransfer.items;
+    if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+        let queue = [];
+        for (let i = 0; i < items.length; i++) {
+            const entry = items[i].webkitGetAsEntry();
+            if (entry) queue.push(entry);
+        }
+        
+        const files = [];
+        const relativePaths = [];
+
+        while (queue.length > 0) {
+            let entry = queue.shift();
+            
+            if (entry.isFile) {
+                const file = await new Promise((resolve) => entry.file(resolve));
+                files.push(file);
+                const path = entry.fullPath.startsWith('/') ? entry.fullPath.substring(1) : entry.fullPath;
+                relativePaths.push(path);
+            } else if (entry.isDirectory) {
+                let dirReader = entry.createReader();
+                let entries = await new Promise((resolve) => {
+                    let allEntries = [];
+                    function readEntries() {
+                        dirReader.readEntries((results) => {
+                            if (!results.length) {
+                                resolve(allEntries);
+                            } else {
+                                allEntries = allEntries.concat(Array.from(results));
+                                readEntries();
+                            }
+                        });
+                    }
+                    readEntries();
+                });
+                queue.push(...entries);
+            }
+        }
+        
+        if (files.length > 0) {
+            await performFileUpload(files, relativePaths, destinationPath);
+        }
+    } else if (dataTransfer.files && dataTransfer.files.length > 0) {
+        await performFileUpload(dataTransfer.files, null, destinationPath);
     }
 }
 
@@ -603,51 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dragCounter = 0;
         overlay.classList.remove('active');
 
-        const items = e.dataTransfer.items;
-        if (items && items.length > 0 && items[0].webkitGetAsEntry) {
-            let queue = [];
-            for (let i = 0; i < items.length; i++) {
-                const entry = items[i].webkitGetAsEntry();
-                if (entry) queue.push(entry);
-            }
-            
-            const files = [];
-            const relativePaths = [];
-
-            while (queue.length > 0) {
-                let entry = queue.shift();
-                
-                if (entry.isFile) {
-                    const file = await new Promise((resolve) => entry.file(resolve));
-                    files.push(file);
-                    const path = entry.fullPath.startsWith('/') ? entry.fullPath.substring(1) : entry.fullPath;
-                    relativePaths.push(path);
-                } else if (entry.isDirectory) {
-                    let dirReader = entry.createReader();
-                    let entries = await new Promise((resolve) => {
-                        let allEntries = [];
-                        function readEntries() {
-                            dirReader.readEntries((results) => {
-                                if (!results.length) {
-                                    resolve(allEntries);
-                                } else {
-                                    allEntries = allEntries.concat(Array.from(results));
-                                    readEntries();
-                                }
-                            });
-                        }
-                        readEntries();
-                    });
-                    queue.push(...entries);
-                }
-            }
-            
-            if (files.length > 0) {
-                await performFileUpload(files, relativePaths);
-            }
-        } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            await performFileUpload(e.dataTransfer.files);
-        }
+        await processExternalDrop(e.dataTransfer);
     });
 });
 
@@ -737,7 +866,13 @@ async function handleItemDrop(event, path, isDir, el) {
     document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
     
     const data = event.dataTransfer.getData('application/json');
-    if (!data) return;
+    if (!data) {
+        if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+            processExternalDrop(event.dataTransfer, path);
+        }
+        return;
+    }
+    
     try {
         const parsed = JSON.parse(data);
         if (parsed.type === 'internal_move') {

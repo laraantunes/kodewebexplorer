@@ -199,7 +199,16 @@ async function handleTreeDrop(event, destPath, el) {
     document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
     
     const data = event.dataTransfer.getData('application/json');
-    if (!data) return;
+    if (!data) {
+        // Tenta processar como upload de arquivos externos (drag & drop do SO)
+        if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+            if (typeof processExternalDrop === 'function') {
+                processExternalDrop(event.dataTransfer, destPath);
+            }
+        }
+        return;
+    }
+    
     try {
         const parsed = JSON.parse(data);
         if (parsed.type === 'internal_move') {
