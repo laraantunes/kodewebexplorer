@@ -1319,3 +1319,12 @@ body {
     display: block;
 }
 
+
+/* Drag & Drop Feedback Interno */
+.tree-item.drag-over, .grid-item.drag-over, .list-row.drag-over {
+    background-color: var(--bg-hover) !important;
+    outline: 2px dashed var(--accent) !important;
+    border-radius: 8px;
+    opacity: 0.8;
+}
+

@@ -18,7 +18,7 @@ async function loadTreeRoot() {
     const rootNode = document.createElement('li');
     rootNode.className = 'tree-node';
     rootNode.innerHTML = `
-        <div class="tree-item ${AppState.currentPath === '' ? 'active' : ''}" onclick="navigateTo('')">
+        <div class="tree-item ${AppState.currentPath === '' ? 'active' : ''}" onclick="navigateTo('')" ondragover="handleTreeDragOver(event, this)" ondragleave="handleTreeDragLeave(event, this)" ondrop="handleTreeDrop(event, '', this)">
             <span class="tree-icon" style="color: #00ff88;">🏠</span>
             <span>Raiz</span>
         </div>
@@ -42,7 +42,7 @@ function createTreeNode(folder) {
     const safeId = 'tree-sub-' + folder.path.replace(/[^a-zA-Z0-9]/g, '_');
     
     li.innerHTML = `
-        <div class="tree-item" data-item-path="${folder.path}" onclick="handleTreeItemClick(event, '${folder.path}', ${hasChildren})">
+        <div class="tree-item" data-item-path="${folder.path}" onclick="handleTreeItemClick(event, '${folder.path}', ${hasChildren})" ondragover="handleTreeDragOver(event, this)" ondragleave="handleTreeDragLeave(event, this)" ondrop="handleTreeDrop(event, '${folder.path}', this)">
             <span class="tree-toggle ${hasChildren ? 'has-child' : ''}" onclick="handleToggleClick(event, '${folder.path}')">${toggleIcon}</span>
             <span class="tree-icon">📂</span>
             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${folder.name}</span>
@@ -175,4 +175,49 @@ function closeMobileDrawers() {
     if (navTree) navTree.classList.remove('active');
     if (navDetails) navDetails.classList.remove('active');
     if (navFiles) navFiles.classList.add('active');
+}
+
+// --- DRAG AND DROP NA ÁRVORE (MOVER ARQUIVOS) ---
+function handleTreeDragOver(event, el) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    
+    document.querySelectorAll('.drag-over').forEach(node => {
+        if (node !== el) node.classList.remove('drag-over');
+    });
+    if (el) el.classList.add('drag-over');
+}
+
+function handleTreeDragLeave(event, el) {
+    if (el) el.classList.remove('drag-over');
+}
+
+async function handleTreeDrop(event, destPath, el) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (el) el.classList.remove('drag-over');
+    document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+    
+    const data = event.dataTransfer.getData('application/json');
+    if (!data) return;
+    try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'internal_move') {
+            const items = parsed.paths;
+            if (items.includes(destPath)) return; // Não pode mover para si mesmo
+            
+            showToast("Movendo itens para a árvore...", "info");
+            const res = await apiPost('files', { action: 'move', items: items, destination: destPath });
+            if (res.success) {
+                showToast(res.message, "success");
+                AppState.selectedItems = [];
+                if (typeof loadCurrentFolder === 'function') loadCurrentFolder();
+                loadTreeRoot();
+            } else {
+                showToast(res.error || "Erro ao mover itens", "error");
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
 }

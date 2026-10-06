@@ -53,6 +53,8 @@ $resolved_ws = realpath($workspace_path) ?: $workspace_path;
     <!-- Menu de Contexto (Clique direito sobre arquivo ou pasta) -->
     <div class="context-menu" id="file-context-menu">
         <div class="context-menu-item" id="ctx-btn-open" onclick="handleAction('open')">👁️ Abrir / Visualizar</div>
+        <div class="context-menu-item" id="ctx-btn-new-folder" onclick="openNewItemModal('folder')" style="display: none;">📁+ Nova Pasta</div>
+        <div class="context-menu-item" id="ctx-btn-new-file" onclick="openNewItemModal('file')" style="display: none;">📄+ Novo Arquivo</div>
         <div class="context-menu-item" onclick="handleAction('download')">📥 Download <span id="ctx-dl-label"></span></div>
         <div class="context-menu-item" id="ctx-btn-share" onclick="handleAction('share')">📤 Compartilhar</div>
         <div class="context-menu-item" onclick="handleAction('get_link')">🔗 Gerar Link</div>

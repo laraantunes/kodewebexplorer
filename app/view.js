@@ -65,7 +65,7 @@ function renderCurrentFolder(filesToRender = null) {
             const thumbUrl = (isImage(item.ext) && !item.is_dir && item.size < 5000000) ? `api/serve.php?path=${encodeURIComponent(item.path)}` : '';
 
             html += `
-                <div class="grid-item ${isSel ? 'selected' : ''}" data-path="${item.path}" data-index="${idx}" onclick="handleItemClick(event, '${item.path}', ${idx}, ${item.is_dir})" oncontextmenu="showContextMenu(event, '${item.path}', ${idx})">
+                <div class="grid-item ${isSel ? 'selected' : ''}" draggable="true" ondragstart="handleItemDragStart(event, '${item.path}')" ondragover="handleItemDragOver(event, ${item.is_dir}, this)" ondragleave="handleItemDragLeave(event, this)" ondrop="handleItemDrop(event, '${item.path}', ${item.is_dir}, this)" data-path="${item.path}" data-index="${idx}" onclick="handleItemClick(event, '${item.path}', ${idx}, ${item.is_dir})" oncontextmenu="showContextMenu(event, '${item.path}', ${idx})">
                     <input type="checkbox" class="grid-item-checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectCheckbox('${item.path}', ${idx});">
                     ${thumbUrl ? `<img src="${thumbUrl}" class="grid-item-thumb" alt="${item.name}">` : `<div class="grid-item-icon">${icon}</div>`}
                     <div class="grid-item-name" title="${item.name}">${item.name}</div>
@@ -95,7 +95,7 @@ function renderCurrentFolder(filesToRender = null) {
             const isSel = AppState.selectedItems.includes(item.path);
             const icon = getFileIcon(item);
             html += `
-                <tr class="list-row ${isSel ? 'selected' : ''}" data-path="${item.path}" data-index="${idx}" onclick="handleItemClick(event, '${item.path}', ${idx}, ${item.is_dir})" oncontextmenu="showContextMenu(event, '${item.path}', ${idx})">
+                <tr class="list-row ${isSel ? 'selected' : ''}" draggable="true" ondragstart="handleItemDragStart(event, '${item.path}')" ondragover="handleItemDragOver(event, ${item.is_dir}, this)" ondragleave="handleItemDragLeave(event, this)" ondrop="handleItemDrop(event, '${item.path}', ${item.is_dir}, this)" data-path="${item.path}" data-index="${idx}" onclick="handleItemClick(event, '${item.path}', ${idx}, ${item.is_dir})" oncontextmenu="showContextMenu(event, '${item.path}', ${idx})">
                     <td class="list-checkbox-cell" onclick="event.stopPropagation(); toggleSelectCheckbox('${item.path}', ${idx});">
                         <input type="checkbox" ${isSel ? 'checked' : ''}>
                     </td>
@@ -291,6 +291,12 @@ function showContextMenu(event, path, idx) {
     
     const btnOpen = document.getElementById('ctx-btn-open');
     if (btnOpen) btnOpen.style.display = 'block';
+    
+    const btnNewFolder = document.getElementById('ctx-btn-new-folder');
+    if (btnNewFolder) btnNewFolder.style.display = 'none';
+    
+    const btnNewFile = document.getElementById('ctx-btn-new-file');
+    if (btnNewFile) btnNewFile.style.display = 'none';
     
     const btnShare = document.getElementById('ctx-btn-share');
     if (btnShare) btnShare.style.display = isDir ? 'none' : 'block';
@@ -566,14 +572,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let dragCounter = 0;
 
     viewport.addEventListener('dragenter', (e) => {
+        if (e.dataTransfer.types.includes('internal_move')) return;
         e.preventDefault();
         dragCounter++;
         overlay.classList.add('active');
     });
 
-    viewport.addEventListener('dragover', (e) => e.preventDefault());
+    viewport.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('internal_move')) return;
+        e.preventDefault();
+    });
 
     viewport.addEventListener('dragleave', (e) => {
+        if (e.dataTransfer.types.includes('internal_move')) return;
         e.preventDefault();
         dragCounter--;
         if (dragCounter <= 0) {
@@ -583,6 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     viewport.addEventListener('drop', async (e) => {
+        if (e.dataTransfer.types.includes('internal_move')) {
+            dragCounter = 0;
+            overlay.classList.remove('active');
+            return;
+        }
         e.preventDefault();
         dragCounter = 0;
         overlay.classList.remove('active');
@@ -654,6 +670,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const btnOpen = document.getElementById('ctx-btn-open');
             if (btnOpen) btnOpen.style.display = 'none'; // Não faz sentido reabrir a pasta atual
             
+            const btnNewFolder = document.getElementById('ctx-btn-new-folder');
+            if (btnNewFolder) btnNewFolder.style.display = 'block';
+            
+            const btnNewFile = document.getElementById('ctx-btn-new-file');
+            if (btnNewFile) btnNewFile.style.display = 'block';
+            
             const btnShare = document.getElementById('ctx-btn-share');
             if (btnShare) btnShare.style.display = 'none'; // Pasta não pode ser compartilhada
             
@@ -678,3 +700,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// --- MOVIMENTAÇÃO DE ITENS COM DRAG & DROP INTERNO ---
+function handleItemDragStart(event, path) {
+    if (!AppState.selectedItems.includes(path)) {
+        AppState.selectedItems = [path];
+        renderCurrentFolder();
+    }
+    event.dataTransfer.setData('application/json', JSON.stringify({ type: 'internal_move', paths: AppState.selectedItems }));
+    event.dataTransfer.setData('internal_move', 'true');
+    event.dataTransfer.effectAllowed = "move";
+}
+
+function handleItemDragOver(event, isDir, el) {
+    if (isDir) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        
+        document.querySelectorAll('.drag-over').forEach(node => {
+            if (node !== el) node.classList.remove('drag-over');
+        });
+        if (el) el.classList.add('drag-over');
+    }
+}
+
+function handleItemDragLeave(event, el) {
+    if (el) el.classList.remove('drag-over');
+}
+
+async function handleItemDrop(event, path, isDir, el) {
+    if (!isDir) return;
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (el) el.classList.remove('drag-over');
+    document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+    
+    const data = event.dataTransfer.getData('application/json');
+    if (!data) return;
+    try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'internal_move') {
+            const items = parsed.paths;
+            if (items.includes(path)) return; // Não pode mover para si mesmo
+            
+            showToast("Movendo itens...", "info");
+            const res = await apiPost('files', { action: 'move', items: items, destination: path });
+            if (res.success) {
+                showToast(res.message, "success");
+                AppState.selectedItems = [];
+                loadCurrentFolder();
+                if (typeof loadTreeRoot === 'function') loadTreeRoot();
+            } else {
+                showToast(res.error || "Erro ao mover itens", "error");
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
